@@ -1,0 +1,256 @@
+[
+  {
+    "milestone": "Milestone 1: Project Setup & UI Foundations",
+    "tickets": [
+      {
+        "title": "Setup React Native Project & Core Design System",
+        "description": "Initialize the React Native project, set up basic navigation (React Navigation), and create the foundational design system. This includes defining the color palette, typography (rounded font), and core style constants based on the design spec.",
+        "priority": "High",
+        "dependencies": [],
+        "acceptance_criteria": [
+          "Project is initialized and runs on iOS and Android simulators.",
+          "React Navigation is installed and configured for a basic stack navigator.",
+          "A global styles/theme file exists with color tokens and font styles from the design spec.",
+          "A basic folder structure for components, screens, and assets is established."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Create Reusable PrimaryButton Component",
+        "description": "Develop the large, touch-friendly `PrimaryButton` component as specified in the MainMenuScreen design. It must be reusable and support title, icon, and onPress props, including the specified press animation.",
+        "priority": "High",
+        "dependencies": [
+          "Setup React Native Project & Core Design System"
+        ],
+        "acceptance_criteria": [
+          "Component visually matches the design spec (backgroundColor, padding, borderRadius, shadow).",
+          "Component accepts `title`, `icon`, and `onPress` props.",
+          "On press, the button animates scaling down to 0.95 using an `Animated.spring` effect.",
+          "The accessibility label clearly communicates the button's action (e.g., 'One player game')."
+        ],
+        "complexity": "Medium"
+      }
+    ]
+  },
+  {
+    "milestone": "Milestone 2: Main Menu & Navigation",
+    "tickets": [
+      {
+        "title": "Implement MainMenuScreen UI Layout",
+        "description": "Build the layout for the MainMenuScreen using the specified wireframe. This screen will incorporate the app logo and two instances of the `PrimaryButton` component for game mode selection.",
+        "priority": "High",
+        "dependencies": [
+          "Create Reusable PrimaryButton Component"
+        ],
+        "acceptance_criteria": [
+          "The screen layout matches the wireframe design.",
+          "The 3T logo is displayed as per the `Logo` component spec.",
+          "\"1 Player\" and \"2 Players\" buttons are rendered using the `PrimaryButton` component.",
+          "The screen is responsive and looks correct on various device sizes."
+        ],
+        "complexity": "Low"
+      },
+      {
+        "title": "Implement Navigation from Main Menu to Game Screen",
+        "description": "Wire up the '1 Player' and '2 Players' buttons on the MainMenuScreen to navigate to the GameScreen, passing the selected game mode ('single' or 'multi') as a route parameter.",
+        "priority": "High",
+        "dependencies": [
+          "Implement MainMenuScreen UI Layout"
+        ],
+        "acceptance_criteria": [
+          "Tapping the '1 Player' button navigates to the GameScreen with the parameter `{ mode: 'single' }`.",
+          "Tapping the '2 Players' button navigates to the GameScreen with the parameter `{ mode: 'multi' }`.",
+          "A placeholder GameScreen is created to receive the navigation action."
+        ],
+        "complexity": "Low"
+      }
+    ]
+  },
+  {
+    "milestone": "Milestone 3: Core Game Loop (2-Player Mode)",
+    "tickets": [
+      {
+        "title": "Create GameBoardCell Component",
+        "description": "Develop the individual, pressable cell component for the 3x3 game grid. It needs to handle empty, 'X', and 'O' states and include the specified pop-in animation.",
+        "priority": "High",
+        "dependencies": [],
+        "acceptance_criteria": [
+          "Component styling matches the `GameBoardCell` design spec (size, background, shadow).",
+          "It correctly displays 'X' in blue and 'O' in red, or nothing for an empty state.",
+          "When a symbol appears, it animates in with a `LayoutAnimation.spring()` effect.",
+          "The cell is pressable and reports its coordinates (row, col) when pressed.",
+          "Accessibility state ('X', 'O', or 'empty') is announced by screen readers."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Implement 3x3 GameBoard UI & State Management",
+        "description": "Assemble nine `GameBoardCell` components into a 3x3 grid. Implement the core state management for the board, tracking player moves and the current turn for a two-player game.",
+        "priority": "High",
+        "dependencies": [
+          "Create GameBoardCell Component"
+        ],
+        "acceptance_criteria": [
+          "A 3x3 grid of `GameBoardCell` components is rendered on the GameScreen.",
+          "Game state correctly tracks the symbol in each of the 9 cells.",
+          "Tapping an empty cell updates the state with the current player's symbol ('X' or 'O').",
+          "The turn correctly alternates between Player 1 (X) and Player 2 (O).",
+          "Tapping an already occupied cell has no effect."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Implement Win/Draw Detection Logic",
+        "description": "Develop the logic to check the game board state after each move to determine if a player has won (3 in a row, column, or diagonal) or if the game is a draw.",
+        "priority": "High",
+        "dependencies": [
+          "Implement 3x3 GameBoard UI & State Management"
+        ],
+        "acceptance_criteria": [
+          "The logic correctly identifies all 8 winning conditions for both 'X' and 'O'.",
+          "The logic correctly identifies a draw condition (all cells are filled with no winner).",
+          "The game state transitions to 'game over' when a win or draw is detected."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Create GameHeader Component for Turn Indication",
+        "description": "Build the UI component that displays whose turn it is, using both text and a visual marker as described in the `GameHeader` spec, including the turn transition animation.",
+        "priority": "Medium",
+        "dependencies": [
+          "Implement 3x3 GameBoard UI & State Management"
+        ],
+        "acceptance_criteria": [
+          "The header displays the current player's turn (e.g., \"X's Turn\").",
+          "A visual indicator highlights the active player's symbol.",
+          "The display correctly updates after each move is made.",
+          "A smooth animation (slide or fade) transitions the indicator between turns."
+        ],
+        "complexity": "Low"
+      }
+    ]
+  },
+  {
+    "milestone": "Milestone 4: Game Over & Single-Player AI",
+    "tickets": [
+      {
+        "title": "Create GameOverModal Component",
+        "description": "Develop the modal overlay that appears at the end of a game. It must display the result (Win, Draw) and provide options to 'Play Again' or return to the 'Main Menu'.",
+        "priority": "High",
+        "dependencies": [
+          "Implement Win/Draw Detection Logic"
+        ],
+        "acceptance_criteria": [
+          "Modal appears automatically when a game ends.",
+          "Modal correctly displays the outcome text (e.g., 'X Wins!', 'It's a Draw!').",
+          "The 'Play Again' button resets the game board and state for a new game.",
+          "The 'Main Menu' button navigates the user back to the MainMenuScreen.",
+          "Modal animates in by scaling up from the center of the screen."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Implement Basic Single-Player AI Opponent",
+        "description": "Develop the logic for the AI opponent in single-player mode. The initial version should make a valid, random move into an available cell.",
+        "priority": "High",
+        "dependencies": [
+          "Implement Win/Draw Detection Logic"
+        ],
+        "acceptance_criteria": [
+          "In 'single' player mode, the AI (Player 'O') automatically makes a move after the human player.",
+          "The AI's move is always placed in a currently empty cell.",
+          "The game flow proceeds correctly until a win, loss, or draw occurs.",
+          "A short, non-blocking delay (e.g., 500ms) is added before the AI move to simulate thinking."
+        ],
+        "complexity": "Medium"
+      }
+    ]
+  },
+  {
+    "milestone": "Milestone 5: AI Coach & Engagement",
+    "tickets": [
+      {
+        "title": "Implement AIAssistant UI Component",
+        "description": "Create the visual component for the AI Assistant, including the mascot character and the speech bubble, as per the design spec. It should support dynamic text messages.",
+        "priority": "Medium",
+        "dependencies": [
+          "Implement 3x3 GameBoard UI & State Management"
+        ],
+        "acceptance_criteria": [
+          "The component is positioned in the bottom-left corner of the GameScreen.",
+          "It displays the mascot image and a speech bubble with text.",
+          "The mascot has a subtle idle animation like blinking to feel alive.",
+          "When new text is provided, the speech bubble animates in with a spring effect."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Implement AI Coach Hint Logic",
+        "description": "Develop the logic for the AI Coach to provide helpful tips. Tips should be triggered based on user inactivity during their turn to encourage strategic thinking.",
+        "priority": "High",
+        "dependencies": [
+          "Implement AIAssistant UI Component",
+          "Implement Basic Single-Player AI Opponent"
+        ],
+        "acceptance_criteria": [
+          "If the user is idle for 4 seconds, a general hint (e.g., 'Try the corner!') is displayed.",
+          "The logic can identify if the player has a winning move available and provide a targeted hint.",
+          "The logic can identify if the opponent has a winning move and suggest a blocking move.",
+          "Hints are displayed in the AIAssistant's speech bubble.",
+          "Hints are only shown in single-player mode."
+        ],
+        "complexity": "High"
+      },
+      {
+        "title": "Add Celebratory Win Animations",
+        "description": "Enhance the `GameOverModal` by adding a celebratory confetti effect for a win, as suggested in the design spec notes, to make winning more rewarding for children.",
+        "priority": "Medium",
+        "dependencies": [
+          "Create GameOverModal Component"
+        ],
+        "acceptance_criteria": [
+          "When a player wins a game, a confetti animation is triggered over the screen.",
+          "The win/draw text in the modal is styled with the specified colors (`winText`, `drawText`).",
+          "The animation is joyful and performs smoothly."
+        ],
+        "complexity": "Medium"
+      }
+    ]
+  },
+  {
+    "milestone": "Milestone 6: Final Polish & Accessibility",
+    "tickets": [
+      {
+        "title": "Add Playful Sound Effects",
+        "description": "Integrate non-intrusive, playful sound effects for key user interactions like placing a piece, winning the game, and clicking UI buttons to enhance the sensory experience.",
+        "priority": "Low",
+        "dependencies": [
+          "Create GameOverModal Component"
+        ],
+        "acceptance_criteria": [
+          "A sound plays when a player places an 'X' or 'O' on the board.",
+          "A distinct, celebratory sound plays on a win.",
+          "A gentle sound plays on a draw or loss.",
+          "A click sound is associated with main menu button presses."
+        ],
+        "complexity": "Medium"
+      },
+      {
+        "title": "Final UI Polish and Performance Review",
+        "description": "Conduct a final review of the entire app to ensure all animations are smooth, UI elements align perfectly with the design spec, and the app performs well on target devices without noticeable lag or stutter.",
+        "priority": "Medium",
+        "dependencies": [
+          "Add Celebratory Win Animations",
+          "Implement AI Coach Hint Logic"
+        ],
+        "acceptance_criteria": [
+          "All animations run smoothly at or near 60fps on target devices.",
+          "UI components match the design spec's styling, spacing, and typography.",
+          "App launch time is reasonably fast.",
+          "The app is stable and does not crash during a typical gameplay session."
+        ],
+        "complexity": "Medium"
+      }
+    ]
+  }
+]
