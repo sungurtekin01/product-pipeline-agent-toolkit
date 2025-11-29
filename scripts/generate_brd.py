@@ -30,7 +30,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-pro")  # Use your desired Gemini model
 
 product_vision = (
-    "Build a colorful, child-friendly Tic Tac Toe app (called 3T) in React Native for iPhone and iPad. "
+    "Build a colorful, child-friendly Tic Tac Toe app (called 3T) in React Native for iPhone, iPad, and Android. "
     "It should be easy for young children to play, use fun graphics and sounds, "
     "and include a helpful AI coach to encourage learning and social play. "
     "The app should support single-player and two-player modes, "

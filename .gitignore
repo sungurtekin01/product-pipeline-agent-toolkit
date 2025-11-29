@@ -10,6 +10,7 @@ __pycache__/
 .Python
 venv/
 env/
+.venv/
 
 # BAML generated code
 baml_client/

@@ -1,4 +1,4 @@
-# Sait's Product Pipeline Toolkit
+	# Sait's Product Pipeline Toolkit
 
 AI-powered product development pipeline using BAML schemas and Gemini API to generate Business Requirements Documents, Design Specifications, and Development Tickets.
 
@@ -19,9 +19,27 @@ AI-powered product development pipeline using BAML schemas and Gemini API to gen
 
 - **Python 3.8+**
 - **Gemini API Key** - Get yours at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- **BAML CLI** - Install with: `npm install -g @boundaryml/baml`
+- **BAML (Basically a Made-up Language) CLI** - Install with: `npm install -g @boundaryml/baml`
 
 ## Setup Instructions
+
+### Quick Setup (Recommended)
+
+Run the automated setup script:
+
+```bash
+./setup.sh
+```
+
+This will:
+- Create a virtual environment
+- Install all dependencies with correct versions
+- Copy .env.example to .env
+- Check for required tools
+
+Then follow the next steps to configure your environment and generate the BAML client.
+
+### Manual Setup
 
 ### 1. Add to Your Project
 
@@ -38,11 +56,22 @@ your-project/
 └── requirements.txt  # Python dependencies
 ```
 
-### 2. Install Dependencies
+### 2. Create Virtual Environment and Install Dependencies
 
 ```bash
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+source .venv/bin/activate  # On macOS/Linux
+# OR
+.venv\Scripts\activate     # On Windows
+
+# Install dependencies
 pip install -r requirements.txt
 ```
+
+**Note**: Always activate the virtual environment before running scripts.
 
 ### 3. Configure Environment
 
@@ -66,7 +95,11 @@ baml-cli generate --from ./baml_src --to ./baml_client
 Edit `scripts/generate_brd.py` and customize the `product_vision` variable with your product idea, then run:
 
 ```bash
-python scripts/generate_brd.py
+# Make sure virtual environment is activated
+source .venv/bin/activate
+
+# Run the script
+PYTHONPATH=. python scripts/generate_brd.py
 ```
 
 **Output**: `brd.json` - Structured business requirements
@@ -76,7 +109,7 @@ python scripts/generate_brd.py
 Uses the BRD to create detailed design specifications:
 
 ```bash
-python scripts/generate_design.py
+PYTHONPATH=. python scripts/generate_design.py
 ```
 
 **Output**: `design-spec.json` - Complete design specification with screens and components
@@ -86,7 +119,7 @@ python scripts/generate_design.py
 Creates actionable development tickets organized by milestones:
 
 ```bash
-python scripts/generate_tickets.py
+PYTHONPATH=. python scripts/generate_tickets.py
 ```
 
 **Output**: `product/development-tickets.json` - Ready-to-use development tickets
@@ -165,6 +198,12 @@ product-pipeline-toolkit/
 ### "ModuleNotFoundError: No module named 'baml_client'"
 - Run `baml-cli generate --from ./baml_src --to ./baml_client`
 - Ensure BAML CLI is installed: `npm install -g @boundaryml/baml`
+- Make sure to run scripts with `PYTHONPATH=.` to include the current directory in the Python path
+
+### "baml-py version mismatch" or "baml-py is likely out of date"
+- This means the baml_client was generated with a different version of baml-py
+- The requirements.txt pins baml-py to version 0.213.0 to match the generated client
+- If you regenerate the baml_client with `baml-cli generate`, you may need to update the baml-py version in requirements.txt to match
 
 ### "FileNotFoundError" when running scripts
 - Ensure you're running from the project root, not from `scripts/` directory
@@ -204,9 +243,10 @@ Create a shell script to run the entire pipeline:
 
 ```bash
 #!/bin/bash
-python scripts/generate_brd.py && \
-python scripts/generate_design.py && \
-python scripts/generate_tickets.py
+source .venv/bin/activate
+PYTHONPATH=. python scripts/generate_brd.py && \
+PYTHONPATH=. python scripts/generate_design.py && \
+PYTHONPATH=. python scripts/generate_tickets.py
 ```
 
 ## Credits
