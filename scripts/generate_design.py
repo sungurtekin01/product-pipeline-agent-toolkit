@@ -8,10 +8,14 @@ and a designer persona. The output includes screens, components, and wireframes,
 validated against a BAML schema.
 
 Usage:
-    1. Ensure generate_brd.py has been run and brd.json exists
-    2. Ensure GEMINI_API_KEY is set in your .env file
-    3. Run from project root: python scripts/generate_design.py
-    4. Output will be saved to ./design-spec.json
+    # With config file (product.config.json in project root):
+    python scripts/generate_design.py --project /path/to/project
+
+    # With command-line arguments:
+    python scripts/generate_design.py --output docs/product
+
+    # Backward compatible (from toolkit directory):
+    python scripts/generate_design.py
 
 Requirements:
     - brd.json (from generate_brd.py)
@@ -20,21 +24,60 @@ Requirements:
     - BAML client generated from baml_src/ schemas
 """
 
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
 from dotenv import load_dotenv
 load_dotenv()
-import os
 import google.generativeai as genai
-import json
-import re
+
+# Add toolkit directory to path for baml_client import
+toolkit_dir = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(toolkit_dir))
+
 from baml_client.types import DesignSpec  # BAML-generated schema
 
-# Load the previously validated BRD from disk
-with open("brd.json") as f:
-    brd = json.load(f)
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Generate Design Specification')
+parser.add_argument('--project', default='.', help='Project directory path')
+parser.add_argument('--output', help='Output directory (overrides config)')
+args = parser.parse_args()
 
-# Load designer persona and best practices from designer.toml
-with open("personas/rn_designer.toml") as toml_file:
+# Resolve project path
+project_path = Path(args.project).resolve()
+config_path = project_path / 'product.config.json'
+
+# Load config if exists
+config = {}
+if config_path.exists():
+    with open(config_path) as f:
+        config = json.load(f)
+    print(f"✓ Loaded config from {config_path}")
+
+# Determine output directory
+output_dir = args.output or config.get('output_dir', '.')
+output_path = project_path / output_dir
+
+# Load the previously validated BRD from project directory
+brd_file = output_path / 'brd.json'
+if not brd_file.exists():
+    print(f"❌ Error: brd.json not found at {brd_file}")
+    print("   Please run generate_brd.py first.")
+    exit(1)
+
+with open(brd_file) as f:
+    brd = json.load(f)
+print(f"✓ Loaded BRD from {brd_file}")
+
+# Load designer persona from toolkit directory
+persona_file = toolkit_dir / 'personas' / 'rn_designer.toml'
+with open(persona_file) as toml_file:
     designer_persona = toml_file.read()
+print(f"✓ Loaded persona from {persona_file}")
 
 # Provide a schema hint to guide Gemini output structure
 schema_hint = (
@@ -68,11 +111,12 @@ except Exception as e:
     print("Raw output:\n", cleaned)
     exit(1)
 
-with open("design-spec.json", "w") as f:
+design_output = output_path / 'design-spec.json'
+with open(design_output, "w") as f:
     try:
         f.write(design.model_dump_json(indent=2))  # Pydantic v2
     except AttributeError:
         f.write(design.json(indent=2))             # Pydantic v1
 
-print("Design spec saved to design-spec.json")
+print(f"✓ Design spec saved to {design_output}")
 

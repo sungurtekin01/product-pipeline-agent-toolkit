@@ -8,10 +8,14 @@ using the Gemini API and a product owner persona. Tickets include acceptance cri
 priorities, and dependencies.
 
 Usage:
-    1. Ensure generate_brd.py and generate_design.py have been run
-    2. Ensure GEMINI_API_KEY is set in your .env file
-    3. Run from project root: python scripts/generate_tickets.py
-    4. Output will be saved to ./product/development-tickets.json
+    # With config file (product.config.json in project root):
+    python scripts/generate_tickets.py --project /path/to/project
+
+    # With command-line arguments:
+    python scripts/generate_tickets.py --output docs/product
+
+    # Backward compatible (from toolkit directory):
+    python scripts/generate_tickets.py
 
 Requirements:
     - brd.json (from generate_brd.py)
@@ -20,27 +24,72 @@ Requirements:
     - Product owner persona file (po.toml)
 """
 
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
 from dotenv import load_dotenv
 load_dotenv()
-import os
 import google.generativeai as genai
-import json
-import re
+
+# Add toolkit directory to path
+toolkit_dir = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(toolkit_dir))
 
 # No model import here unless you have a specific ticket schema class,
 # if so, import ticket model like: from baml_client.types import TicketSpec
 
-# Load BRD from disk
-with open("brd.json") as f:
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='Generate Development Tickets')
+parser.add_argument('--project', default='.', help='Project directory path')
+parser.add_argument('--output', help='Output directory (overrides config)')
+args = parser.parse_args()
+
+# Resolve project path
+project_path = Path(args.project).resolve()
+config_path = project_path / 'product.config.json'
+
+# Load config if exists
+config = {}
+if config_path.exists():
+    with open(config_path) as f:
+        config = json.load(f)
+    print(f"✓ Loaded config from {config_path}")
+
+# Determine output directory
+output_dir = args.output or config.get('output_dir', '.')
+output_path = project_path / output_dir
+
+# Load BRD from project directory
+brd_file = output_path / 'brd.json'
+if not brd_file.exists():
+    print(f"❌ Error: brd.json not found at {brd_file}")
+    print("   Please run generate_brd.py first.")
+    exit(1)
+
+with open(brd_file) as f:
     brd = json.load(f)
+print(f"✓ Loaded BRD from {brd_file}")
 
 # Load design spec for more detailed context
-with open("design-spec.json") as f:
-    design_spec = json.load(f)
+design_file = output_path / 'design-spec.json'
+if not design_file.exists():
+    print(f"❌ Error: design-spec.json not found at {design_file}")
+    print("   Please run generate_design.py first.")
+    exit(1)
 
-# Load product owner persona prompt
-with open("personas/po.toml") as toml_file:
+with open(design_file) as f:
+    design_spec = json.load(f)
+print(f"✓ Loaded design spec from {design_file}")
+
+# Load product owner persona from toolkit directory
+persona_file = toolkit_dir / 'personas' / 'po.toml'
+with open(persona_file) as toml_file:
     product_owner_persona = toml_file.read()
+print(f"✓ Loaded persona from {persona_file}")
 
 # Schema hint describing ticket output structure expected from Gemini
 schema_hint = (
@@ -76,9 +125,9 @@ except Exception as e:
     print("Raw response:", cleaned)
     exit(1)
 
-# Save tickets to product directory for developer consumption
-os.makedirs("product", exist_ok=True)
-with open("product/development-tickets.json", "w") as f:
+# Save tickets to project output directory
+tickets_output = output_path / 'development-tickets.json'
+with open(tickets_output, "w") as f:
     json.dump(tickets_json, f, indent=2)
 
-print("Product owner tickets saved to product/development-tickets.json")
+print(f"✓ Development tickets saved to {tickets_output}")

@@ -19,7 +19,7 @@ AI-powered product development pipeline using BAML schemas and Gemini API to gen
 
 - **Python 3.8+**
 - **Gemini API Key** - Get yours at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- **BAML (Basically a Made-up Language) CLI** - Install with: `npm install -g @boundaryml/baml`
+- **BAML CLI v0.213.0** - Install with: `npm install -g @boundaryml/baml@0.213.0`
 
 ## Setup Instructions
 
@@ -85,12 +85,59 @@ cp .env.example .env
 This creates the Python Pydantic models from BAML schemas:
 
 ```bash
-baml-cli generate --from ./baml_src --to ./baml_client
+baml generate
 ```
+
+**Note**: Make sure you have BAML CLI v0.213.0 installed globally (see Prerequisites). This version generates Python by default.
 
 ## Usage
 
-### Step 1: Generate Business Requirements Document
+The toolkit can be used in two ways:
+1. **Standalone mode** - Run from toolkit directory for quick prototyping
+2. **Project mode** - Generate docs for any external project using `product.config.json`
+
+### Using with External Projects (Recommended)
+
+#### Step 1: Create Config in Your Project
+
+In your project root, create `product.config.json`:
+
+```json
+{
+  "name": "Your Project Name",
+  "vision": "Your product vision and description...",
+  "output_dir": "docs/product"
+}
+```
+
+#### Step 2: Generate All Documents
+
+From anywhere, run the toolkit scripts pointing to your project:
+
+```bash
+# From your project directory:
+cd ~/your-project
+python ~/path/to/product-pipeline-toolkit/scripts/generate_brd.py --project .
+python ~/path/to/product-pipeline-toolkit/scripts/generate_design.py --project .
+python ~/path/to/product-pipeline-toolkit/scripts/generate_tickets.py --project .
+```
+
+Or from anywhere:
+
+```bash
+python ~/path/to/product-pipeline-toolkit/scripts/generate_brd.py --project ~/your-project
+python ~/path/to/product-pipeline-toolkit/scripts/generate_design.py --project ~/your-project
+python ~/path/to/product-pipeline-toolkit/scripts/generate_tickets.py --project ~/your-project
+```
+
+**Outputs** will be saved to your project's configured output directory (e.g., `docs/product/`):
+- `brd.json` - Business Requirements Document
+- `design-spec.json` - Design Specification
+- `development-tickets.json` - Development Tickets
+
+### Standalone Mode (Quick Prototyping)
+
+#### Step 1: Generate Business Requirements Document
 
 Edit `scripts/generate_brd.py` and customize the `product_vision` variable with your product idea, then run:
 
@@ -147,7 +194,7 @@ Extend or modify the schemas in `baml_src/` to add custom fields:
 After modifying schemas, regenerate the BAML client:
 
 ```bash
-baml-cli generate --from ./baml_src --to ./baml_client
+baml generate
 ```
 
 ### Product Vision
@@ -196,14 +243,14 @@ product-pipeline-toolkit/
 - Check you're running scripts from the project root
 
 ### "ModuleNotFoundError: No module named 'baml_client'"
-- Run `baml-cli generate --from ./baml_src --to ./baml_client`
-- Ensure BAML CLI is installed: `npm install -g @boundaryml/baml`
+- Run `baml generate` to create the Python client
+- Ensure BAML CLI v0.213.0 is installed: `npm install -g @boundaryml/baml@0.213.0`
 - Make sure to run scripts with `PYTHONPATH=.` to include the current directory in the Python path
 
 ### "baml-py version mismatch" or "baml-py is likely out of date"
 - This means the baml_client was generated with a different version of baml-py
-- The requirements.txt pins baml-py to version 0.213.0 to match the generated client
-- If you regenerate the baml_client with `baml-cli generate`, you may need to update the baml-py version in requirements.txt to match
+- The requirements.txt pins baml-py to version 0.213.0 to match BAML CLI v0.213.0
+- Both the Python package (baml-py) and CLI tool must be version 0.213.0
 
 ### "FileNotFoundError" when running scripts
 - Ensure you're running from the project root, not from `scripts/` directory
