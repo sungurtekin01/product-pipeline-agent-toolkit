@@ -37,6 +37,7 @@ toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
 from baml_client.types import BRD  # Your BAML-generated Pydantic class
+from src.personas.loader import PersonaLoader
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Business Requirements Document')
@@ -75,17 +76,13 @@ print(f"✓ Output directory: {output_path}")
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-pro")  # Use your desired Gemini model
 
-# Prompt instructing the LLM to respond with only schema-compliant JSON
-prompt = (
-    "You are a Product Strategist. Turn the product vision into a structured Business Requirements Document (BRD) "
-    "for a React Native children's Tic Tac Toe mobile app ('3T'). "
-    "Respond only with a JSON object matching this format:\n"
-    "{ \"title\": string, \"description\": string, \"objectives\": [string, ...] }\n"
-    "Focus on learning, fun, easy play, and safe social interaction. Avoid technical implementation details."
-)
+# Load strategist persona from TOML file
+personas_dir = toolkit_dir / 'personas'
+persona_loader = PersonaLoader(personas_dir)
+strategist_prompt = persona_loader.get_prompt('strategist')
 
 response = model.generate_content(
-    f"{prompt}\n\nProduct Vision:\n{product_vision}",
+    f"{strategist_prompt}\n\nProduct Vision:\n{product_vision}",
     stream=False
 )
 
