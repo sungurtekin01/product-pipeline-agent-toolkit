@@ -43,6 +43,7 @@ from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
+from src.io.markdown_parser import MarkdownParser
 from src.agents.designer import DesignerAgent
 from src.agents.strategist import StrategistAgent
 from src.agents.conversation import ConversationOrchestrator
@@ -134,20 +135,38 @@ print("="*60 + "\n")
 # Use designer LLM client for final generation
 llm_client = designer_llm
 
+# Check for feedback and incorporate if exists
+feedback_file = output_path / 'conversations' / 'feedback' / 'design-feedback.md'
+feedback = MarkdownParser.read_feedback(feedback_file)
+
 # Provide a schema hint to guide LLM output structure
 schema_hint = (
     "Output a single JSON object matching this schema: "
     '{ "summary": string, "screens": [ { "name": string, "description": string, "wireframe": string, "components": [ { "name": string, "description": string, "code_snippet": string, "notes": string } ] } ] }'
 )
 
-# Compose the user prompt with Q&A context
-user_prompt = (
-    f"{schema_hint}\n\n"
-    "Here is the validated BRD:\n"
-    f"{json.dumps(brd, indent=2)}\n\n"
-    "Additional context from Q&A session with Product Strategist:\n"
-    f"{qa_conversation}"
-)
+# Compose the user prompt with Q&A context and optional feedback
+if feedback:
+    print(f"📝 Found feedback at {feedback_file}")
+    print("🔄 Regenerating design spec with feedback incorporated...\n")
+    user_prompt = (
+        f"{schema_hint}\n\n"
+        "Here is the validated BRD:\n"
+        f"{json.dumps(brd, indent=2)}\n\n"
+        "Additional context from Q&A session with Product Strategist:\n"
+        f"{qa_conversation}\n\n"
+        f"Previous Design Feedback:\n{feedback}\n\n"
+        "Please regenerate the design spec incorporating the feedback above."
+    )
+else:
+    print("✓ No feedback found, generating design spec...\n")
+    user_prompt = (
+        f"{schema_hint}\n\n"
+        "Here is the validated BRD:\n"
+        f"{json.dumps(brd, indent=2)}\n\n"
+        "Additional context from Q&A session with Product Strategist:\n"
+        f"{qa_conversation}"
+    )
 
 # Generate design spec using LLM client
 response = llm_client.generate(user_prompt, system_prompt=designer_prompt)
