@@ -44,6 +44,8 @@ parser = argparse.ArgumentParser(description='Generate Business Requirements Doc
 parser.add_argument('--project', default='.', help='Project directory path')
 parser.add_argument('--output', help='Output directory (overrides config)')
 parser.add_argument('--vision', help='Product vision (overrides config)')
+parser.add_argument('--provider', help='LLM provider: gemini, claude, openai (overrides config)')
+parser.add_argument('--model', help='LLM model name (overrides config)')
 args = parser.parse_args()
 
 # Resolve project path
