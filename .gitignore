@@ -19,6 +19,8 @@ baml_client/
 brd.json
 design-spec.json
 product/
+# Exception: Include example project template
+!examples/project-template/docs/product/
 
 # Plans and AI guidance
 plans/
