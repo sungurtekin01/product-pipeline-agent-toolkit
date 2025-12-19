@@ -43,6 +43,10 @@ from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
+from src.agents.po import POAgent
+from src.agents.designer import DesignerAgent
+from src.agents.strategist import StrategistAgent
+from src.agents.conversation import ConversationOrchestrator
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Development Tickets')
@@ -84,24 +88,80 @@ with open(design_file) as f:
     design_spec = json.load(f)
 print(f"✓ Loaded design spec from {design_file}")
 
-# Load product owner persona
+# Load personas
 personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
 po_prompt = persona_loader.get_prompt('po')
-print(f"✓ Loaded product owner persona")
+designer_prompt = persona_loader.get_prompt('designer')
+strategist_prompt = persona_loader.get_prompt('strategist')
+print(f"✓ Loaded PO, designer, and strategist personas")
 
-# Create LLM client with CLI overrides
+# Create LLM clients with CLI overrides
 cli_override = {}
 if args.provider:
     cli_override['provider'] = args.provider
 if args.model:
     cli_override['model'] = args.model
 
-llm_client = LLMFactory.from_config(
+po_llm = LLMFactory.from_config(
     pipeline_config.get_raw_config(),
     'po',
     cli_override if cli_override else None
 )
+
+designer_llm = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'designer',
+    cli_override if cli_override else None
+)
+
+strategist_llm = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'strategist',
+    cli_override if cli_override else None
+)
+
+# Run Q&A session: PO asks Designer and Strategist about BRD and Design
+print("\n" + "="*60)
+print("Q&A SESSION: Product Owner ↔ Designer & Strategist")
+print("="*60)
+
+po_agent = POAgent(
+    name="Product Owner",
+    persona_prompt=po_prompt,
+    llm_client=po_llm
+)
+
+designer_agent = DesignerAgent(
+    name="UX Designer",
+    persona_prompt=designer_prompt,
+    llm_client=designer_llm
+)
+
+strategist_agent = StrategistAgent(
+    name="Product Strategist",
+    persona_prompt=strategist_prompt,
+    llm_client=strategist_llm
+)
+
+orchestrator = ConversationOrchestrator(output_path)
+brd_text = json.dumps(brd, indent=2)
+design_text = json.dumps(design_spec, indent=2)
+
+qa_conversation = orchestrator.run_qa_session(
+    questioner=po_agent,
+    respondents=[
+        (designer_agent, design_text),
+        (strategist_agent, brd_text)
+    ],
+    session_name="tickets-qa",
+    num_questions=5
+)
+
+print("="*60 + "\n")
+
+# Use PO LLM client for final generation
+llm_client = po_llm
 
 # Schema hint describing ticket output structure expected from LLM
 schema_hint = (
@@ -109,13 +169,15 @@ schema_hint = (
     "title, description, priority, dependencies, acceptance_criteria, complexity."
 )
 
-# Compose the user prompt including BRD, design spec, and schema hint
+# Compose the user prompt including BRD, design spec, Q&A context, and schema hint
 user_prompt = (
     f"{schema_hint}\n\n"
     "Here is the validated Business Requirements Document:\n"
     f"{json.dumps(brd, indent=2)}\n\n"
     "Here is the validated Design Spec:\n"
-    f"{json.dumps(design_spec, indent=2)}"
+    f"{json.dumps(design_spec, indent=2)}\n\n"
+    "Additional context from Q&A session with Designer and Strategist:\n"
+    f"{qa_conversation}"
 )
 
 # Generate tickets using LLM client
