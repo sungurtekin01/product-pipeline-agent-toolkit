@@ -19,3 +19,9 @@ baml_client/
 brd.json
 design-spec.json
 product/
+
+# Plans and AI guidance
+plans/
+.claude/
+CLAUDE.md
+GEMINI.md
