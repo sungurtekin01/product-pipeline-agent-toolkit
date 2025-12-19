@@ -43,6 +43,7 @@ from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
+from src.io.markdown_parser import MarkdownParser
 from src.agents.po import POAgent
 from src.agents.designer import DesignerAgent
 from src.agents.strategist import StrategistAgent
@@ -163,22 +164,42 @@ print("="*60 + "\n")
 # Use PO LLM client for final generation
 llm_client = po_llm
 
+# Check for feedback and incorporate if exists
+feedback_file = output_path / 'conversations' / 'feedback' / 'tickets-feedback.md'
+feedback = MarkdownParser.read_feedback(feedback_file)
+
 # Schema hint describing ticket output structure expected from LLM
 schema_hint = (
     "Output a JSON-formatted array of tickets grouped by milestones including fields: "
     "title, description, priority, dependencies, acceptance_criteria, complexity."
 )
 
-# Compose the user prompt including BRD, design spec, Q&A context, and schema hint
-user_prompt = (
-    f"{schema_hint}\n\n"
-    "Here is the validated Business Requirements Document:\n"
-    f"{json.dumps(brd, indent=2)}\n\n"
-    "Here is the validated Design Spec:\n"
-    f"{json.dumps(design_spec, indent=2)}\n\n"
-    "Additional context from Q&A session with Designer and Strategist:\n"
-    f"{qa_conversation}"
-)
+# Compose the user prompt including BRD, design spec, Q&A context, and optional feedback
+if feedback:
+    print(f"📝 Found feedback at {feedback_file}")
+    print("🔄 Regenerating development tickets with feedback incorporated...\n")
+    user_prompt = (
+        f"{schema_hint}\n\n"
+        "Here is the validated Business Requirements Document:\n"
+        f"{json.dumps(brd, indent=2)}\n\n"
+        "Here is the validated Design Spec:\n"
+        f"{json.dumps(design_spec, indent=2)}\n\n"
+        "Additional context from Q&A session with Designer and Strategist:\n"
+        f"{qa_conversation}\n\n"
+        f"Previous Tickets Feedback:\n{feedback}\n\n"
+        "Please regenerate the development tickets incorporating the feedback above."
+    )
+else:
+    print("✓ No feedback found, generating development tickets...\n")
+    user_prompt = (
+        f"{schema_hint}\n\n"
+        "Here is the validated Business Requirements Document:\n"
+        f"{json.dumps(brd, indent=2)}\n\n"
+        "Here is the validated Design Spec:\n"
+        f"{json.dumps(design_spec, indent=2)}\n\n"
+        "Additional context from Q&A session with Designer and Strategist:\n"
+        f"{qa_conversation}"
+    )
 
 # Generate tickets using LLM client
 response = llm_client.generate(user_prompt, system_prompt=po_prompt)
