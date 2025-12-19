@@ -39,6 +39,7 @@ from baml_client.types import BRD  # Your BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
+from src.io.markdown_writer import MarkdownWriter
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Business Requirements Document')
@@ -110,12 +111,17 @@ print("\nObjectives:")
 for i, obj in enumerate(brd.objectives, 1):
     print(f"{i}. {obj}")
 
-# Save validated BRD to disk for other agents to use
-brd_output = output_path / 'brd.json'
-with open(brd_output, "w") as f:
+# Save BRD as markdown (primary output format)
+brd_md_output = output_path / 'BRD.md'
+MarkdownWriter.write_brd(brd, brd_md_output)
+print(f"\n✓ BRD saved to {brd_md_output}")
+
+# Also save as JSON for inter-script compatibility
+brd_json_output = output_path / 'brd.json'
+with open(brd_json_output, "w") as f:
     try:
         f.write(brd.model_dump_json(indent=2))  # Pydantic v2+
     except AttributeError:
         f.write(brd.json(indent=2))  # Pydantic v1 fallback
 
-print(f"\n✓ BRD saved to {brd_output}")
+print(f"✓ BRD (JSON) saved to {brd_json_output}")

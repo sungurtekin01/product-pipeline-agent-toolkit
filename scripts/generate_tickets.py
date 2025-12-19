@@ -38,11 +38,11 @@ load_dotenv()
 toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
-# No model import here unless you have a specific ticket schema class,
-# if so, import ticket model like: from baml_client.types import TicketSpec
+from src.schemas.tickets import TicketSpec
 from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
+from src.io.markdown_writer import MarkdownWriter
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Development Tickets')
@@ -126,14 +126,28 @@ cleaned = llm_client.clean_response(response)
 
 try:
     tickets_json = json.loads(cleaned)
+
+    # Validate tickets structure using Pydantic schema
+    # The LLM should return an array of TicketSpec objects (milestones with tickets)
+    if isinstance(tickets_json, list):
+        ticket_specs = [TicketSpec(**spec) for spec in tickets_json]
+    else:
+        # If it's a single object, wrap it in a list
+        ticket_specs = [TicketSpec(**tickets_json)]
+
 except Exception as e:
-    print("Error parsing ticket JSON:", e)
+    print("Error parsing or validating ticket JSON:", e)
     print("Raw response:", cleaned)
     exit(1)
 
-# Save tickets to project output directory
-tickets_output = output_path / 'development-tickets.json'
-with open(tickets_output, "w") as f:
+# Save tickets as markdown (primary output format)
+tickets_md_output = output_path / 'development-tickets.md'
+MarkdownWriter.write_tickets(ticket_specs, tickets_md_output)
+print(f"✓ Development tickets saved to {tickets_md_output}")
+
+# Also save as JSON for inter-script compatibility
+tickets_json_output = output_path / 'development-tickets.json'
+with open(tickets_json_output, "w") as f:
     json.dump(tickets_json, f, indent=2)
 
-print(f"✓ Development tickets saved to {tickets_output}")
+print(f"✓ Development tickets (JSON) saved to {tickets_json_output}")

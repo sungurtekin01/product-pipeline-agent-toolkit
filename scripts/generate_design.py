@@ -42,6 +42,7 @@ from baml_client.types import DesignSpec  # BAML-generated schema
 from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
+from src.io.markdown_writer import MarkdownWriter
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Design Specification')
@@ -118,12 +119,18 @@ except Exception as e:
     print("Raw output:\n", cleaned)
     exit(1)
 
-design_output = output_path / 'design-spec.json'
-with open(design_output, "w") as f:
+# Save design spec as markdown (primary output format)
+design_md_output = output_path / 'design-spec.md'
+MarkdownWriter.write_design_spec(design, design_md_output)
+print(f"✓ Design spec saved to {design_md_output}")
+
+# Also save as JSON for inter-script compatibility
+design_json_output = output_path / 'design-spec.json'
+with open(design_json_output, "w") as f:
     try:
         f.write(design.model_dump_json(indent=2))  # Pydantic v2
     except AttributeError:
         f.write(design.json(indent=2))             # Pydantic v1
 
-print(f"✓ Design spec saved to {design_output}")
+print(f"✓ Design spec (JSON) saved to {design_json_output}")
 
