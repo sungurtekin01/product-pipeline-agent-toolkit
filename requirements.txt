@@ -2,3 +2,5 @@ google-generativeai>=0.3.0
 python-dotenv>=1.0.0
 baml-py==0.213.0
 pydantic>=2.0.0
+anthropic>=0.39.0
+openai>=1.54.0
