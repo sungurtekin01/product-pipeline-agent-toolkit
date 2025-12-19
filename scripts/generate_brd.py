@@ -30,7 +30,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
-import google.generativeai as genai
 
 # Add toolkit directory to path for baml_client import
 toolkit_dir = Path(__file__).parent.parent.resolve()
@@ -38,6 +37,8 @@ sys.path.insert(0, str(toolkit_dir))
 
 from baml_client.types import BRD  # Your BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
+from src.llm.factory import LLMFactory
+from src.pipeline.config import PipelineConfig
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Business Requirements Document')
@@ -48,57 +49,49 @@ parser.add_argument('--provider', help='LLM provider: gemini, claude, openai (ov
 parser.add_argument('--model', help='LLM model name (overrides config)')
 args = parser.parse_args()
 
-# Resolve project path
+# Load project configuration
 project_path = Path(args.project).resolve()
-config_path = project_path / 'product.config.json'
+pipeline_config = PipelineConfig(project_path)
 
-# Load config if exists
-config = {}
-if config_path.exists():
-    with open(config_path) as f:
-        config = json.load(f)
-    print(f"✓ Loaded config from {config_path}")
+if pipeline_config.has_config():
+    print(f"✓ Loaded config from {pipeline_config.config_path}")
 
-# Determine values (priority: CLI args > config > defaults)
-product_vision = args.vision or config.get('vision',
-    "Build a colorful, child-friendly Tic Tac Toe app (called 3T) in React Native for iPhone, iPad, and Android. "
-    "It should be easy for young children to play, use fun graphics and sounds, "
-    "and include a helpful AI coach to encourage learning and social play. "
-    "The app should support single-player and two-player modes, "
-    "quick feedback, and gentle win/loss animations."
-)
-output_dir = args.output or config.get('output_dir', '.')
-output_path = project_path / output_dir
+# Get configuration values with CLI overrides (priority: CLI > config > defaults)
+product_vision = pipeline_config.get_vision(cli_override=args.vision)
+output_path = pipeline_config.get_output_dir(cli_override=args.output)
 
 # Ensure output directory exists
 output_path.mkdir(parents=True, exist_ok=True)
 print(f"✓ Output directory: {output_path}")
 
-# Configure Gemini with your API key from .env
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-pro")  # Use your desired Gemini model
+# Create LLM client with CLI overrides
+cli_override = {}
+if args.provider:
+    cli_override['provider'] = args.provider
+if args.model:
+    cli_override['model'] = args.model
+
+llm_client = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'strategist',
+    cli_override if cli_override else None
+)
 
 # Load strategist persona from TOML file
 personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
 strategist_prompt = persona_loader.get_prompt('strategist')
 
-response = model.generate_content(
-    f"{strategist_prompt}\n\nProduct Vision:\n{product_vision}",
-    stream=False
-)
+# Generate BRD using LLM client
+user_prompt = f"Product Vision:\n{product_vision}"
+response = llm_client.generate(user_prompt, system_prompt=strategist_prompt)
 
-# First strip leading/trailing whitespace
-cleaned = response.text.strip()
-
-# Remove the opening code fence (```json or ```
-cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-# Remove closing code fence (```
-cleaned = re.sub(r"\s*```$", "", cleaned)
+# Clean response (removes code fences)
+cleaned = llm_client.clean_response(response)
 
 # If 'cleaned' is still empty, print for debugging:
 if not cleaned:
-    print('Cleaned string is empty. Raw output was:', response.text)
+    print('Cleaned string is empty. Raw output was:', response)
     exit(1)
 
 print('Cleaned:', repr(cleaned))
@@ -108,7 +101,7 @@ try:
     brd = BRD(**json_response)
 except Exception as e:
     print("Error validating or parsing model output:", e)
-    print("Raw response:\n", response.text)
+    print("Raw response:\n", response)
     exit(1)
 
 print("BRD Title:", brd.title)

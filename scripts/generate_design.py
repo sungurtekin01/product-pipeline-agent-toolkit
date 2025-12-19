@@ -33,13 +33,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
-import google.generativeai as genai
 
 # Add toolkit directory to path for baml_client import
 toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
 from baml_client.types import DesignSpec  # BAML-generated schema
+from src.personas.loader import PersonaLoader
+from src.llm.factory import LLMFactory
+from src.pipeline.config import PipelineConfig
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Design Specification')
@@ -49,20 +51,15 @@ parser.add_argument('--provider', help='LLM provider: gemini, claude, openai (ov
 parser.add_argument('--model', help='LLM model name (overrides config)')
 args = parser.parse_args()
 
-# Resolve project path
+# Load project configuration
 project_path = Path(args.project).resolve()
-config_path = project_path / 'product.config.json'
+pipeline_config = PipelineConfig(project_path)
 
-# Load config if exists
-config = {}
-if config_path.exists():
-    with open(config_path) as f:
-        config = json.load(f)
-    print(f"✓ Loaded config from {config_path}")
+if pipeline_config.has_config():
+    print(f"✓ Loaded config from {pipeline_config.config_path}")
 
-# Determine output directory
-output_dir = args.output or config.get('output_dir', '.')
-output_path = project_path / output_dir
+# Get output directory with CLI override
+output_path = pipeline_config.get_output_dir(cli_override=args.output)
 
 # Load the previously validated BRD from project directory
 brd_file = output_path / 'brd.json'
@@ -75,35 +72,43 @@ with open(brd_file) as f:
     brd = json.load(f)
 print(f"✓ Loaded BRD from {brd_file}")
 
-# Load designer persona from toolkit directory
-persona_file = toolkit_dir / 'personas' / 'rn_designer.toml'
-with open(persona_file) as toml_file:
-    designer_persona = toml_file.read()
-print(f"✓ Loaded persona from {persona_file}")
+# Load designer persona
+personas_dir = toolkit_dir / 'personas'
+persona_loader = PersonaLoader(personas_dir)
+designer_prompt = persona_loader.get_prompt('designer')
+print(f"✓ Loaded designer persona")
 
-# Provide a schema hint to guide Gemini output structure
+# Create LLM client with CLI overrides
+cli_override = {}
+if args.provider:
+    cli_override['provider'] = args.provider
+if args.model:
+    cli_override['model'] = args.model
+
+llm_client = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'designer',
+    cli_override if cli_override else None
+)
+
+# Provide a schema hint to guide LLM output structure
 schema_hint = (
     "Output a single JSON object matching this schema: "
     '{ "summary": string, "screens": [ { "name": string, "description": string, "wireframe": string, "components": [ { "name": string, "description": string, "code_snippet": string, "notes": string } ] } ] }'
 )
 
-# Compose the full prompt for Gemini
-full_prompt = (
-    f"{designer_persona}\n\n"
+# Compose the user prompt
+user_prompt = (
     f"{schema_hint}\n"
-    "Here is the validated BRD for the React Native Tic Tac Toe app:\n"
+    "Here is the validated BRD:\n"
     f"{json.dumps(brd, indent=2)}"
 )
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-pro")
+# Generate design spec using LLM client
+response = llm_client.generate(user_prompt, system_prompt=designer_prompt)
 
-response = model.generate_content(full_prompt, stream=False)
-
-# Robust cleaning of code fences
-cleaned = response.text.strip()
-cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-cleaned = re.sub(r"\s*```$", "", cleaned)
+# Clean response (removes code fences)
+cleaned = llm_client.clean_response(response)
 
 try:
     json_response = json.loads(cleaned)

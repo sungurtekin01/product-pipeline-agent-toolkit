@@ -33,7 +33,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
-import google.generativeai as genai
 
 # Add toolkit directory to path
 toolkit_dir = Path(__file__).parent.parent.resolve()
@@ -41,6 +40,9 @@ sys.path.insert(0, str(toolkit_dir))
 
 # No model import here unless you have a specific ticket schema class,
 # if so, import ticket model like: from baml_client.types import TicketSpec
+from src.personas.loader import PersonaLoader
+from src.llm.factory import LLMFactory
+from src.pipeline.config import PipelineConfig
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Development Tickets')
@@ -50,20 +52,15 @@ parser.add_argument('--provider', help='LLM provider: gemini, claude, openai (ov
 parser.add_argument('--model', help='LLM model name (overrides config)')
 args = parser.parse_args()
 
-# Resolve project path
+# Load project configuration
 project_path = Path(args.project).resolve()
-config_path = project_path / 'product.config.json'
+pipeline_config = PipelineConfig(project_path)
 
-# Load config if exists
-config = {}
-if config_path.exists():
-    with open(config_path) as f:
-        config = json.load(f)
-    print(f"✓ Loaded config from {config_path}")
+if pipeline_config.has_config():
+    print(f"✓ Loaded config from {pipeline_config.config_path}")
 
-# Determine output directory
-output_dir = args.output or config.get('output_dir', '.')
-output_path = project_path / output_dir
+# Get output directory with CLI override
+output_path = pipeline_config.get_output_dir(cli_override=args.output)
 
 # Load BRD from project directory
 brd_file = output_path / 'brd.json'
@@ -87,21 +84,33 @@ with open(design_file) as f:
     design_spec = json.load(f)
 print(f"✓ Loaded design spec from {design_file}")
 
-# Load product owner persona from toolkit directory
-persona_file = toolkit_dir / 'personas' / 'po.toml'
-with open(persona_file) as toml_file:
-    product_owner_persona = toml_file.read()
-print(f"✓ Loaded persona from {persona_file}")
+# Load product owner persona
+personas_dir = toolkit_dir / 'personas'
+persona_loader = PersonaLoader(personas_dir)
+po_prompt = persona_loader.get_prompt('po')
+print(f"✓ Loaded product owner persona")
 
-# Schema hint describing ticket output structure expected from Gemini
+# Create LLM client with CLI overrides
+cli_override = {}
+if args.provider:
+    cli_override['provider'] = args.provider
+if args.model:
+    cli_override['model'] = args.model
+
+llm_client = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'po',
+    cli_override if cli_override else None
+)
+
+# Schema hint describing ticket output structure expected from LLM
 schema_hint = (
     "Output a JSON-formatted array of tickets grouped by milestones including fields: "
     "title, description, priority, dependencies, acceptance_criteria, complexity."
 )
 
-# Compose the prompt passed to Gemini including BRD, design spec, and schema hint
-full_prompt = (
-    f"{product_owner_persona}\n\n"
+# Compose the user prompt including BRD, design spec, and schema hint
+user_prompt = (
     f"{schema_hint}\n\n"
     "Here is the validated Business Requirements Document:\n"
     f"{json.dumps(brd, indent=2)}\n\n"
@@ -109,16 +118,11 @@ full_prompt = (
     f"{json.dumps(design_spec, indent=2)}"
 )
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-pro")
+# Generate tickets using LLM client
+response = llm_client.generate(user_prompt, system_prompt=po_prompt)
 
-response = model.generate_content(full_prompt, stream=False)
-
-cleaned = response.text.strip()
-
-# Remove code block fences if present
-cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-cleaned = re.sub(r"\s*```$", "", cleaned)
+# Clean response (removes code fences)
+cleaned = llm_client.clean_response(response)
 
 try:
     tickets_json = json.loads(cleaned)
