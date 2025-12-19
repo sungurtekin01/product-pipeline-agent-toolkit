@@ -43,6 +43,9 @@ from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
+from src.agents.designer import DesignerAgent
+from src.agents.strategist import StrategistAgent
+from src.agents.conversation import ConversationOrchestrator
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Design Specification')
@@ -73,24 +76,63 @@ with open(brd_file) as f:
     brd = json.load(f)
 print(f"✓ Loaded BRD from {brd_file}")
 
-# Load designer persona
+# Load personas
 personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
 designer_prompt = persona_loader.get_prompt('designer')
-print(f"✓ Loaded designer persona")
+strategist_prompt = persona_loader.get_prompt('strategist')
+print(f"✓ Loaded designer and strategist personas")
 
-# Create LLM client with CLI overrides
+# Create LLM clients with CLI overrides
 cli_override = {}
 if args.provider:
     cli_override['provider'] = args.provider
 if args.model:
     cli_override['model'] = args.model
 
-llm_client = LLMFactory.from_config(
+designer_llm = LLMFactory.from_config(
     pipeline_config.get_raw_config(),
     'designer',
     cli_override if cli_override else None
 )
+
+strategist_llm = LLMFactory.from_config(
+    pipeline_config.get_raw_config(),
+    'strategist',
+    cli_override if cli_override else None
+)
+
+# Run Q&A session: Designer asks Strategist about BRD
+print("\n" + "="*60)
+print("Q&A SESSION: Designer ↔ Strategist")
+print("="*60)
+
+designer_agent = DesignerAgent(
+    name="UX Designer",
+    persona_prompt=designer_prompt,
+    llm_client=designer_llm
+)
+
+strategist_agent = StrategistAgent(
+    name="Product Strategist",
+    persona_prompt=strategist_prompt,
+    llm_client=strategist_llm
+)
+
+orchestrator = ConversationOrchestrator(output_path)
+brd_text = json.dumps(brd, indent=2)
+
+qa_conversation = orchestrator.run_qa_session(
+    questioner=designer_agent,
+    respondents=[(strategist_agent, brd_text)],
+    session_name="design-qa",
+    num_questions=5
+)
+
+print("="*60 + "\n")
+
+# Use designer LLM client for final generation
+llm_client = designer_llm
 
 # Provide a schema hint to guide LLM output structure
 schema_hint = (
@@ -98,11 +140,13 @@ schema_hint = (
     '{ "summary": string, "screens": [ { "name": string, "description": string, "wireframe": string, "components": [ { "name": string, "description": string, "code_snippet": string, "notes": string } ] } ] }'
 )
 
-# Compose the user prompt
+# Compose the user prompt with Q&A context
 user_prompt = (
-    f"{schema_hint}\n"
+    f"{schema_hint}\n\n"
     "Here is the validated BRD:\n"
-    f"{json.dumps(brd, indent=2)}"
+    f"{json.dumps(brd, indent=2)}\n\n"
+    "Additional context from Q&A session with Product Strategist:\n"
+    f"{qa_conversation}"
 )
 
 # Generate design spec using LLM client
