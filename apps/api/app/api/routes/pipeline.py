@@ -110,28 +110,39 @@ async def execute_step(
     feedback: Optional[str] = None
 ):
     """Execute a pipeline step in the background"""
+    from app.services.pipeline_executor import PipelineExecutor
+
     try:
         # Update status to running
         tasks[task_id].status = "running"
         tasks[task_id].progress = 10
 
-        # TODO: Integrate with packages/engine to execute the actual pipeline
-        # For now, simulate execution
-        await asyncio.sleep(2)
-        tasks[task_id].progress = 50
+        # Create executor
+        executor = PipelineExecutor(
+            vision=config.vision,
+            output_dir=config.output_dir,
+            llm_config=config.llm
+        )
 
-        await asyncio.sleep(2)
+        tasks[task_id].progress = 20
+
+        # Execute the appropriate step
+        if step == "brd":
+            result = await executor.generate_brd(feedback)
+        elif step == "design":
+            result = await executor.generate_design(feedback)
+        elif step == "tickets":
+            result = await executor.generate_tickets(feedback)
+        else:
+            raise ValueError(f"Invalid step: {step}")
+
         tasks[task_id].progress = 90
 
         # Mark as completed
         tasks[task_id].status = "completed"
         tasks[task_id].progress = 100
         tasks[task_id].completed_at = datetime.now()
-        tasks[task_id].result = {
-            "step": step,
-            "output_file": f"{config.output_dir}/{step}.md",
-            "message": f"Successfully generated {step}"
-        }
+        tasks[task_id].result = result
 
     except Exception as e:
         tasks[task_id].status = "failed"
