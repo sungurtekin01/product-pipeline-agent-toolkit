@@ -40,6 +40,7 @@ from src.personas.loader import PersonaLoader
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
+from src.io.markdown_parser import MarkdownParser
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Generate Business Requirements Document')
@@ -83,8 +84,23 @@ personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
 strategist_prompt = persona_loader.get_prompt('strategist')
 
+# Check for feedback and incorporate if exists
+feedback_file = output_path / 'conversations' / 'feedback' / 'brd-feedback.md'
+feedback = MarkdownParser.read_feedback(feedback_file)
+
+if feedback:
+    print(f"\n📝 Found feedback at {feedback_file}")
+    print("🔄 Regenerating BRD with feedback incorporated...\n")
+    user_prompt = (
+        f"Product Vision:\n{product_vision}\n\n"
+        f"Previous BRD Feedback:\n{feedback}\n\n"
+        "Please regenerate the BRD incorporating the feedback above."
+    )
+else:
+    print("✓ No feedback found, generating initial BRD...\n")
+    user_prompt = f"Product Vision:\n{product_vision}"
+
 # Generate BRD using LLM client
-user_prompt = f"Product Vision:\n{product_vision}"
 response = llm_client.generate(user_prompt, system_prompt=strategist_prompt)
 
 # Clean response (removes code fences)
