@@ -1,6 +1,65 @@
+'use client';
+
+import { useState } from 'react';
 import PipelineCanvas from '@/components/pipeline/PipelineCanvas';
+import { usePipelineStore } from '@/lib/store/pipelineStore';
+import { pipelineApi } from '@/lib/api/pipelineApi';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export default function Home() {
+  const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId } = usePipelineStore();
+  const [error, setError] = useState<string | null>(null);
+
+  // WebSocket connection for real-time updates
+  useWebSocket({
+    taskId: currentTaskId || '',
+    onMessage: (message) => {
+      console.log('WebSocket message:', message);
+
+      // Parse the step from the message or use a default
+      const step = message.result?.step || 'brd'; // Fallback to brd
+
+      // Update node status based on message
+      if (message.type === 'progress') {
+        setNodeStatus(step, 'running', message.progress, message.message);
+      } else if (message.type === 'complete') {
+        setNodeStatus(step, 'completed', 100, message.message);
+      } else if (message.type === 'error') {
+        setNodeStatus(step, 'failed', 0, message.error);
+      }
+    },
+  });
+
+  const handleRunPipeline = async () => {
+    if (!vision.trim()) {
+      setError('Please enter a product vision');
+      return;
+    }
+
+    setError(null);
+    setIsExecuting(true);
+
+    try {
+      // Execute BRD step
+      const brdResponse = await pipelineApi.executeStep({
+        config: {
+          vision,
+          output_dir: 'docs/product',
+        },
+        step: 'brd',
+      });
+
+      setCurrentTaskId(brdResponse.task_id);
+
+      // Wait for BRD completion (you could also poll or use WebSocket)
+      // For now, we'll rely on WebSocket updates
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start pipeline');
+      setIsExecuting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -16,7 +75,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-1 flex">
         {/* Sidebar */}
-        <aside className="w-80 bg-white border-r border-gray-200 p-6">
+        <aside className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
           <div className="space-y-6">
             {/* Vision Editor */}
             <div>
@@ -26,6 +85,9 @@ export default function Home() {
               <textarea
                 className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter your product vision..."
+                value={vision}
+                onChange={(e) => setVision(e.target.value)}
+                disabled={isExecuting}
               />
             </div>
 
@@ -35,23 +97,39 @@ export default function Home() {
                 LLM Configuration
               </h2>
               <div className="space-y-3">
-                <select className="w-full p-2 border border-gray-300 rounded-lg">
-                  <option>Gemini 2.0 Flash</option>
-                  <option>Claude Sonnet 4</option>
-                  <option>GPT-4o</option>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  value={llmProvider}
+                  onChange={(e) => setLLMProvider(e.target.value)}
+                  disabled={isExecuting}
+                >
+                  <option value="gemini">Gemini 2.0 Flash</option>
+                  <option value="claude">Claude Sonnet 4</option>
+                  <option value="openai">GPT-4o</option>
                 </select>
               </div>
             </div>
 
             {/* Actions */}
             <div className="space-y-2">
-              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                Run Pipeline
+              <button
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                onClick={handleRunPipeline}
+                disabled={isExecuting}
+              >
+                {isExecuting ? 'Running...' : 'Run Pipeline'}
               </button>
               <button className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                 View Documents
               </button>
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
           </div>
         </aside>
 

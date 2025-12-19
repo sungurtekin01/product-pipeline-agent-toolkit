@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -17,37 +17,26 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import PipelineNode, { PipelineNodeData } from './PipelineNode';
+import { usePipelineStore } from '@/lib/store/pipelineStore';
 
-const initialNodes: Node<PipelineNodeData>[] = [
+const nodeDefinitions = [
   {
     id: 'brd',
-    type: 'pipelineNode',
+    label: 'BRD',
+    description: 'Business Requirements Document',
     position: { x: 100, y: 200 },
-    data: {
-      label: 'BRD',
-      description: 'Business Requirements Document',
-      status: 'pending',
-    },
   },
   {
     id: 'design',
-    type: 'pipelineNode',
+    label: 'Design Spec',
+    description: 'UI/UX Design Specification',
     position: { x: 400, y: 200 },
-    data: {
-      label: 'Design Spec',
-      description: 'UI/UX Design Specification',
-      status: 'pending',
-    },
   },
   {
     id: 'tickets',
-    type: 'pipelineNode',
+    label: 'Dev Tickets',
+    description: 'Development Tickets',
     position: { x: 700, y: 200 },
-    data: {
-      label: 'Dev Tickets',
-      description: 'Development Tickets',
-      status: 'pending',
-    },
   },
 ];
 
@@ -75,8 +64,43 @@ const initialEdges: Edge[] = [
 ];
 
 export default function PipelineCanvas() {
+  const pipelineNodes = usePipelineStore((state) => state.nodes);
+
+  // Build React Flow nodes from pipeline store
+  const initialNodes: Node<PipelineNodeData>[] = nodeDefinitions.map((def) => ({
+    id: def.id,
+    type: 'pipelineNode',
+    position: def.position,
+    data: {
+      label: def.label,
+      description: def.description,
+      status: pipelineNodes[def.id]?.status || 'pending',
+      progress: pipelineNodes[def.id]?.progress || 0,
+    },
+  }));
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes when pipeline store changes
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        const storeNode = pipelineNodes[node.id];
+        if (storeNode) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: storeNode.status,
+              progress: storeNode.progress,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [pipelineNodes, setNodes]);
 
   const nodeTypes = useMemo(
     () => ({
