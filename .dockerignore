@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+CLAUDE.md
+GEMINI.md
+.claude/
+
+# Node modules
+node_modules
+apps/web/node_modules
+apps/web/.next
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+env
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs
+
+# Testing
+.coverage
+htmlcov
+.pytest_cache
+
+# Build artifacts
+apps/web/.next
+apps/web/out
+apps/api/__pycache__
+packages/engine/__pycache__
+packages/engine/.venv
+
+# Generated files
+packages/engine/baml_client/__pycache__

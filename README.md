@@ -46,15 +46,33 @@ Vision → BRD → Design Spec → Dev Tickets
 
 ### Prerequisites
 
-- **Node.js 18+** and **pnpm**
-- **Python 3.8+**
-- **BAML CLI v0.213.0**: `npm install -g @boundaryml/baml@0.213.0`
+**For Docker (Recommended):**
+- **Docker** and **Docker Compose** installed
 - **API Keys** (at least one) - You'll configure these in the Settings UI:
   - Gemini: https://aistudio.google.com/apikey (Free tier: 60 requests/min)
   - Anthropic: https://console.anthropic.com/ ($5 free credit)
   - OpenAI: https://platform.openai.com/api-keys ($5 free credit for new accounts)
 
+**For Manual Setup (Development):**
+- **Node.js 18+** and **pnpm**
+- **Python 3.8+**
+- **BAML CLI v0.213.0**: `npm install -g @boundaryml/baml@0.213.0`
+- Same API keys as above
+
 ### 1. Clone and Setup
+
+#### For Docker Users (Quick Setup):
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd product-pipeline-toolkit
+
+# That's it! Docker will handle the rest.
+# Skip to "2. Run the Application → Option A: Docker"
+```
+
+#### For Manual Setup (Development):
 
 ```bash
 # Clone repository
@@ -84,7 +102,25 @@ cd ../..
 
 ### 2. Run the Application
 
-#### Option A: Full Stack (Recommended)
+#### Option A: Docker (Easiest - Recommended)
+
+```bash
+# Start all services (frontend + backend)
+docker compose up
+
+# Or run in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+Then open http://localhost:3000
+
+#### Option B: Manual (Development)
 
 ```bash
 # Terminal 1 - Frontend
@@ -98,7 +134,7 @@ uvicorn app.main:app --reload
 
 Then open http://localhost:3000
 
-#### Option B: Engine Only (CLI)
+#### Option C: Engine Only (CLI)
 
 ```bash
 # Navigate to engine
