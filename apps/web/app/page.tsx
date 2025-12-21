@@ -1,16 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PipelineCanvas from '@/components/pipeline/PipelineCanvas';
 import DocumentViewer from '@/components/documents/DocumentViewer';
+import SettingsModal from '@/components/settings/SettingsModal';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { pipelineApi } from '@/lib/api/pipelineApi';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { hasAPIKeys, getAPIKeyEnvMap } from '@/lib/utils/apiKeys';
+import { Settings } from 'lucide-react';
 
 export default function Home() {
   const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [hasKeys, setHasKeys] = useState(false);
+
+  useEffect(() => {
+    setHasKeys(hasAPIKeys());
+  }, [showSettings]);
 
   // WebSocket connection for real-time updates
   useWebSocket({
@@ -38,15 +47,26 @@ export default function Home() {
       return;
     }
 
+    if (!hasAPIKeys()) {
+      setError('Please configure your API keys in Settings first');
+      setShowSettings(true);
+      return;
+    }
+
     setError(null);
     setIsExecuting(true);
 
     try {
-      // Execute BRD step
+      // Get API keys from localStorage
+      const apiKeyEnvMap = getAPIKeyEnvMap();
+
+      // Execute BRD step with API keys
       const brdResponse = await pipelineApi.executeStep({
         config: {
           vision,
           output_dir: 'docs/product',
+          // Send API keys with request
+          api_keys: apiKeyEnvMap,
         },
         step: 'brd',
       });
@@ -65,13 +85,22 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Product Pipeline Toolkit
-        </h1>
-        <p className="text-sm text-gray-600">
-          Vision → BRD → Design → Tickets
-        </p>
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Product Pipeline Toolkit
+          </h1>
+          <p className="text-sm text-gray-600">
+            Vision → BRD → Design → Tickets
+          </p>
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <Settings className="w-4 h-4" />
+          Settings
+        </button>
       </header>
 
       {/* Main Content */}
@@ -114,10 +143,17 @@ export default function Home() {
 
             {/* Actions */}
             <div className="space-y-2">
+              {!hasKeys && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
+                  <p className="text-xs text-amber-800">
+                    ⚠️ Configure API keys in Settings to run the pipeline
+                  </p>
+                </div>
+              )}
               <button
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 onClick={handleRunPipeline}
-                disabled={isExecuting}
+                disabled={isExecuting || !hasKeys}
               >
                 {isExecuting ? 'Running...' : 'Run Pipeline'}
               </button>
@@ -146,6 +182,9 @@ export default function Home() {
 
       {/* Document Viewer Modal */}
       <DocumentViewer isOpen={showDocuments} onClose={() => setShowDocuments(false)} />
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }

@@ -49,10 +49,10 @@ Vision → BRD → Design Spec → Dev Tickets
 - **Node.js 18+** and **pnpm**
 - **Python 3.8+**
 - **BAML CLI v0.213.0**: `npm install -g @boundaryml/baml@0.213.0`
-- **API Keys** (at least one):
-  - Gemini: https://aistudio.google.com/apikey
-  - Anthropic: https://console.anthropic.com/
-  - OpenAI: https://platform.openai.com/api-keys
+- **API Keys** (at least one) - You'll configure these in the Settings UI:
+  - Gemini: https://aistudio.google.com/apikey (Free tier: 60 requests/min)
+  - Anthropic: https://console.anthropic.com/ ($5 free credit)
+  - OpenAI: https://platform.openai.com/api-keys ($5 free credit for new accounts)
 
 ### 1. Clone and Setup
 
@@ -69,10 +69,6 @@ cd packages/engine
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env and add your API keys
 
 # Generate BAML client
 baml generate
@@ -176,22 +172,29 @@ Core pipeline engine with multi-provider LLM support.
 
 ## 🎮 Using the UI
 
-### 1. Enter Product Vision
+### 1. Configure API Keys (First Time)
+
+Click the **Settings** button in the header and enter your API keys:
+- Add at least one API key (Gemini, Anthropic, or OpenAI)
+- Keys are stored securely in your browser's local storage
+- Keys are never sent to our servers - they go directly to the LLM providers
+
+### 2. Enter Product Vision
 
 In the sidebar, enter your product vision in the text area.
 
-### 2. Configure LLM
+### 3. Configure LLM
 
 Select your preferred LLM provider (Gemini, Claude, or GPT).
 
-### 3. Run Pipeline
+### 4. Run Pipeline
 
 Click "Run Pipeline" to execute all steps sequentially:
 1. BRD generation
 2. Design Spec generation (with Q&A)
 3. Development Tickets (with Q&A)
 
-### 4. Watch Real-time Progress
+### 5. Watch Real-time Progress
 
 Watch the pipeline canvas nodes update in real-time via WebSocket as each step executes:
 - Gray = Pending
@@ -199,7 +202,7 @@ Watch the pipeline canvas nodes update in real-time via WebSocket as each step e
 - Green = Completed
 - Red = Failed
 
-### 5. View Generated Documents
+### 6. View Generated Documents
 
 Click "View Documents" to open the document viewer:
 - Switch between BRD, Design Spec, and Tickets tabs
@@ -236,7 +239,9 @@ Configure different LLMs for each agent in your project's `product.config.json`:
 
 ### Environment Variables
 
-Create `.env` files in both `packages/engine` and `apps/api`:
+**For Users**: Configure API keys via the Settings UI in the web application. No manual `.env` file setup required.
+
+**For Developers**: If testing the engine CLI directly (without the UI), create `.env` in `packages/engine`:
 
 ```bash
 GEMINI_API_KEY=your_key_here
@@ -309,9 +314,11 @@ cd packages/engine
 baml generate
 ```
 
-### "API key not found"
+### "API key not found" or "Please configure your API keys"
 
-Ensure `.env` files exist in both `packages/engine` and `apps/api` with your API keys.
+Click the **Settings** button in the UI and add at least one API key. Keys are stored in your browser's local storage.
+
+For CLI/standalone engine usage, ensure `.env` file exists in `packages/engine` with your API keys.
 
 ### Frontend can't connect to backend
 
@@ -339,7 +346,8 @@ source .venv/bin/activate
 
 - [x] WebSocket support for real-time progress updates
 - [x] Document viewer with markdown rendering
-- [ ] Inline feedback editor in UI
+- [x] Inline feedback editor in UI
+- [x] Settings UI for API key management
 - [ ] Project management (save/load multiple projects)
 - [ ] Authentication and user management
 - [ ] Export to Linear/Jira/GitHub Issues
