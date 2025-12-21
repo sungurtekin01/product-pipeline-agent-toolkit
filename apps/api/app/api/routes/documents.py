@@ -3,8 +3,14 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from typing import Optional
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+class FeedbackRequest(BaseModel):
+    step: str
+    feedback: str
 
 
 @router.get("/documents/{step}")
@@ -148,3 +154,88 @@ async def list_documents(output_dir: str = "docs/product"):
         "output_dir": str(output_path),
         "documents": documents
     }
+
+
+@router.post("/documents/{step}/feedback")
+async def save_feedback(step: str, request: FeedbackRequest, output_dir: str = "docs/product"):
+    """
+    Save feedback for a document step
+
+    Args:
+        step: One of 'brd', 'design', 'tickets'
+        request: Feedback content
+        output_dir: Output directory path
+
+    Returns:
+        Success message with file path
+    """
+    if step not in ['brd', 'design', 'tickets']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid step. Must be one of: brd, design, tickets"
+        )
+
+    # Create feedback directory
+    feedback_dir = Path(output_dir) / 'conversations' / 'feedback'
+    feedback_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save feedback
+    feedback_file = feedback_dir / f"{step}-feedback.md"
+    try:
+        with open(feedback_file, 'w', encoding='utf-8') as f:
+            f.write(request.feedback)
+
+        return {
+            "message": "Feedback saved successfully",
+            "path": str(feedback_file),
+            "step": step
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving feedback: {str(e)}"
+        )
+
+
+@router.get("/documents/{step}/feedback")
+async def get_feedback(step: str, output_dir: str = "docs/product"):
+    """
+    Get existing feedback for a step
+
+    Args:
+        step: One of 'brd', 'design', 'tickets'
+        output_dir: Output directory path
+
+    Returns:
+        Feedback content if exists, empty string otherwise
+    """
+    if step not in ['brd', 'design', 'tickets']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid step. Must be one of: brd, design, tickets"
+        )
+
+    feedback_file = Path(output_dir) / 'conversations' / 'feedback' / f"{step}-feedback.md"
+
+    if not feedback_file.exists():
+        return {
+            "step": step,
+            "feedback": "",
+            "exists": False
+        }
+
+    try:
+        with open(feedback_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        return {
+            "step": step,
+            "feedback": content,
+            "exists": True,
+            "path": str(feedback_file)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error reading feedback: {str(e)}"
+        )

@@ -46,6 +46,18 @@ export interface DocumentList {
   };
 }
 
+export interface Feedback {
+  step: string;
+  feedback: string;
+  exists: boolean;
+  path?: string;
+}
+
+export interface FeedbackSaveRequest {
+  step: string;
+  feedback: string;
+}
+
 export const pipelineApi = {
   /**
    * Execute a pipeline step
@@ -139,6 +151,38 @@ export const pipelineApi = {
 
     if (!response.ok) {
       throw new Error(`Failed to list documents: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Save feedback for a document step
+   */
+  async saveFeedback(request: FeedbackSaveRequest, outputDir: string = 'docs/product'): Promise<{ message: string; path: string; step: string }> {
+    const response = await fetch(`${API_BASE_URL}/documents/${request.step}/feedback?output_dir=${outputDir}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save feedback: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get existing feedback for a step
+   */
+  async getFeedback(step: string, outputDir: string = 'docs/product'): Promise<Feedback> {
+    const response = await fetch(`${API_BASE_URL}/documents/${step}/feedback?output_dir=${outputDir}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to get feedback: ${response.statusText}`);
     }
 
     return response.json();

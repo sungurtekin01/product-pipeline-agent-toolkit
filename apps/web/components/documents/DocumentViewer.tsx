@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { X, Download, FileText, MessageSquare } from 'lucide-react';
+import { X, Download, FileText, MessageSquare, Edit3 } from 'lucide-react';
 import { pipelineApi, Document } from '@/lib/api/pipelineApi';
+import FeedbackEditor from '@/components/feedback/FeedbackEditor';
 
 interface DocumentViewerProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableDocs, setAvailableDocs] = useState<any>(null);
+  const [showFeedbackEditor, setShowFeedbackEditor] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -85,10 +87,10 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
 
   if (!isOpen) return null;
 
-  const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
-    { id: 'brd', label: 'BRD', icon: FileText },
-    { id: 'design', label: 'Design Spec', icon: FileText },
-    { id: 'tickets', label: 'Tickets', icon: FileText },
+  const tabs: { id: TabType; label: string; fullLabel: string; icon: typeof FileText }[] = [
+    { id: 'brd', label: 'BRD', fullLabel: 'Business Requirements Document', icon: FileText },
+    { id: 'design', label: 'Design Spec', fullLabel: 'Design Specification', icon: FileText },
+    { id: 'tickets', label: 'Tickets', fullLabel: 'Development Tickets', icon: FileText },
   ];
 
   const currentDoc = viewMode === 'qa' && qaDoc ? qaDoc : document;
@@ -194,6 +196,14 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
           </div>
           <div className="flex gap-2">
             <button
+              onClick={() => setShowFeedbackEditor(true)}
+              disabled={!currentDoc || viewMode === 'qa'}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Edit3 className="w-4 h-4" />
+              Provide Feedback
+            </button>
+            <button
               onClick={handleDownload}
               disabled={!currentDoc}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -204,6 +214,14 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
           </div>
         </div>
       </div>
+
+      {/* Feedback Editor Modal */}
+      <FeedbackEditor
+        isOpen={showFeedbackEditor}
+        onClose={() => setShowFeedbackEditor(false)}
+        step={activeTab}
+        stepLabel={tabs.find(t => t.id === activeTab)?.fullLabel || ''}
+      />
     </div>
   );
 }

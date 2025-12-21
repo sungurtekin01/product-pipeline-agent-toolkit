@@ -137,6 +137,7 @@ async def execute_step(
 ):
     """Execute a pipeline step in the background"""
     from app.services.pipeline_executor import PipelineExecutor
+    from pathlib import Path
 
     try:
         # Update status to running
@@ -148,6 +149,19 @@ async def execute_step(
             "progress": 10,
             "message": "Starting pipeline execution..."
         })
+
+        # Auto-load feedback if not provided and file exists
+        if feedback is None:
+            feedback_file = Path(config.output_dir) / "conversations" / "feedback" / f"{step}-feedback.md"
+            if feedback_file.exists():
+                with open(feedback_file, 'r', encoding='utf-8') as f:
+                    feedback = f.read()
+                await manager.send_message(task_id, {
+                    "type": "progress",
+                    "status": "running",
+                    "progress": 15,
+                    "message": f"Found existing feedback, incorporating it into regeneration..."
+                })
 
         # Create executor
         executor = PipelineExecutor(
