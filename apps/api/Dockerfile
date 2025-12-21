@@ -15,15 +15,16 @@ RUN npm install -g @boundaryml/baml@0.213.0
 # Set working directory
 WORKDIR /app
 
+# Copy engine requirements (from root)
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
 # Copy engine package (needed by API)
 COPY packages/engine /app/packages/engine
 
 # Generate BAML client in engine
 WORKDIR /app/packages/engine
 RUN baml generate
-
-# Install engine dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy API code
 WORKDIR /app/apps/api
