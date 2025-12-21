@@ -10,9 +10,11 @@ export type PipelineNodeData = {
   progress?: number;
 };
 
-export default function PipelineNode({ data }: NodeProps<PipelineNodeData>) {
+export default function PipelineNode({ data }: NodeProps) {
+  const nodeData = data as PipelineNodeData;
+
   const getStatusIcon = () => {
-    switch (data.status) {
+    switch (nodeData.status) {
       case 'completed':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'running':
@@ -25,7 +27,7 @@ export default function PipelineNode({ data }: NodeProps<PipelineNodeData>) {
   };
 
   const getStatusColor = () => {
-    switch (data.status) {
+    switch (nodeData.status) {
       case 'completed':
         return 'border-green-500 bg-green-50';
       case 'running':
@@ -49,16 +51,16 @@ export default function PipelineNode({ data }: NodeProps<PipelineNodeData>) {
 
       <div className="flex items-center gap-3 mb-2">
         {getStatusIcon()}
-        <div className="font-semibold text-gray-800">{data.label}</div>
+        <div className="font-semibold text-gray-800">{nodeData.label}</div>
       </div>
 
-      <div className="text-sm text-gray-600 mb-3">{data.description}</div>
+      <div className="text-sm text-gray-600 mb-3">{nodeData.description}</div>
 
-      {data.status === 'running' && data.progress !== undefined && (
+      {nodeData.status === 'running' && nodeData.progress !== undefined && (
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${data.progress}%` }}
+            style={{ width: `${nodeData.progress}%` }}
           />
         </div>
       )}

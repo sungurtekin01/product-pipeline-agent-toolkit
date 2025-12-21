@@ -25,7 +25,7 @@ export function useWebSocket({
   onError,
 }: UseWebSocketOptions) {
   const ws = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const connect = useCallback(() => {
     if (!taskId) return;
