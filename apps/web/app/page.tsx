@@ -7,7 +7,7 @@ import SettingsModal from '@/components/settings/SettingsModal';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { pipelineApi } from '@/lib/api/pipelineApi';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { hasAPIKeys, getAPIKeyEnvMap } from '@/lib/utils/apiKeys';
+import { hasAPIKeys } from '@/lib/utils/apiKeys';
 import { Settings } from 'lucide-react';
 
 export default function Home() {
@@ -57,16 +57,12 @@ export default function Home() {
     setIsExecuting(true);
 
     try {
-      // Get API keys from localStorage
-      const apiKeyEnvMap = getAPIKeyEnvMap();
-
-      // Execute BRD step with API keys
+      // Execute BRD step
+      // TODO: API keys from Settings UI will be integrated when backend is updated
       const brdResponse = await pipelineApi.executeStep({
         config: {
           vision,
           output_dir: 'docs/product',
-          // Send API keys with request
-          api_keys: apiKeyEnvMap,
         },
         step: 'brd',
       });

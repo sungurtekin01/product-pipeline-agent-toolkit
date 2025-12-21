@@ -1,6 +1,6 @@
 # Frontend Dockerfile - Next.js Application
 
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -21,7 +21,7 @@ COPY . .
 RUN pnpm build
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 RUN npm install -g pnpm
 

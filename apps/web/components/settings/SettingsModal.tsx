@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * TODO: Settings UI Integration Incomplete
+ *
+ * This Settings UI is currently non-functional. API keys are saved to localStorage
+ * but are NOT sent to the backend yet.
+ *
+ * To complete integration:
+ * 1. Update pipelineApi.ts to add api_keys to PipelineExecutionRequest
+ * 2. Update page.tsx to send keys with executeStep() calls
+ * 3. Update backend (apps/api/app/api/routes/pipeline.py) to accept api_keys in config
+ * 4. Update PipelineExecutor to use request keys instead of environment variables
+ *
+ * Current state: Backend still reads API keys from .env files
+ */
+
 import { useState, useEffect } from 'react';
 import { X, Save, Eye, EyeOff, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 
@@ -91,6 +106,20 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Development Notice */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold text-amber-900">⚠️ Settings UI Not Yet Functional</p>
+                <p className="text-amber-700 mt-1">
+                  This Settings UI is under development. API keys entered here are not currently used.
+                  To run the pipeline, you must still configure API keys in <code className="bg-amber-100 px-1 rounded">.env</code> files.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Security Notice */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start gap-3">
