@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import PipelineCanvas from '@/components/pipeline/PipelineCanvas';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { pipelineApi } from '@/lib/api/pipelineApi';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -9,6 +10,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 export default function Home() {
   const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
+  const [showDocuments, setShowDocuments] = useState(false);
 
   // WebSocket connection for real-time updates
   useWebSocket({
@@ -119,7 +121,10 @@ export default function Home() {
               >
                 {isExecuting ? 'Running...' : 'Run Pipeline'}
               </button>
-              <button className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
+              <button
+                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                onClick={() => setShowDocuments(true)}
+              >
                 View Documents
               </button>
             </div>
@@ -138,6 +143,9 @@ export default function Home() {
           <PipelineCanvas />
         </div>
       </main>
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer isOpen={showDocuments} onClose={() => setShowDocuments(false)} />
     </div>
   );
 }

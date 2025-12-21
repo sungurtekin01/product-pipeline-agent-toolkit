@@ -7,7 +7,7 @@ FastAPI backend for executing the product pipeline (BRD → Design → Tickets)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import pipeline, health
+from app.api.routes import pipeline, health, documents
 
 app = FastAPI(
     title="Product Pipeline Toolkit API",
@@ -27,6 +27,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(pipeline.router, prefix="/api/pipeline", tags=["pipeline"])
+app.include_router(documents.router, prefix="/api", tags=["documents"])
 
 
 @app.get("/")

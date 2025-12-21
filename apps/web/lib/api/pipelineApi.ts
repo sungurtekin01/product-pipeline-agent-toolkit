@@ -27,6 +27,25 @@ export interface PipelineStatus {
   completed_at?: string;
 }
 
+export interface Document {
+  step: string;
+  file_name: string;
+  content: string;
+  path: string;
+}
+
+export interface DocumentList {
+  output_dir: string;
+  documents: {
+    [key: string]: {
+      name: string;
+      file: string;
+      exists: boolean;
+      qa?: boolean;
+    };
+  };
+}
+
 export const pipelineApi = {
   /**
    * Execute a pipeline step
@@ -81,6 +100,45 @@ export const pipelineApi = {
 
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get a document by step
+   */
+  async getDocument(step: string, outputDir: string = 'docs/product'): Promise<Document> {
+    const response = await fetch(`${API_BASE_URL}/documents/${step}?output_dir=${outputDir}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to get document: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get Q&A conversation for a step
+   */
+  async getQAConversation(step: string, outputDir: string = 'docs/product'): Promise<Document> {
+    const response = await fetch(`${API_BASE_URL}/documents/${step}/qa?output_dir=${outputDir}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to get Q&A conversation: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * List all available documents
+   */
+  async listDocuments(outputDir: string = 'docs/product'): Promise<DocumentList> {
+    const response = await fetch(`${API_BASE_URL}/documents/list?output_dir=${outputDir}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to list documents: ${response.statusText}`);
     }
 
     return response.json();
