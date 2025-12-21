@@ -148,6 +148,10 @@ FastAPI application that executes the pipeline.
 - `POST /api/pipeline/execute` - Execute a pipeline step
 - `GET /api/pipeline/status/{task_id}` - Get execution status
 - `GET /api/pipeline/tasks` - List all tasks
+- `WS /api/pipeline/ws/{task_id}` - Real-time progress updates
+- `GET /api/documents/{step}` - Get generated document content
+- `GET /api/documents/{step}/qa` - Get Q&A conversation
+- `GET /api/documents/list` - List all available documents
 - `GET /api/health` - Health check
 
 **Tech Stack:**
@@ -187,11 +191,21 @@ Click "Run Pipeline" to execute all steps sequentially:
 2. Design Spec generation (with Q&A)
 3. Development Tickets (with Q&A)
 
-### 4. View Results
+### 4. Watch Real-time Progress
 
-Watch the pipeline canvas nodes update in real-time as each step completes.
+Watch the pipeline canvas nodes update in real-time via WebSocket as each step executes:
+- Gray = Pending
+- Blue with progress bar = Running
+- Green = Completed
+- Red = Failed
 
-Click "View Documents" to see the generated markdown files.
+### 5. View Generated Documents
+
+Click "View Documents" to open the document viewer:
+- Switch between BRD, Design Spec, and Tickets tabs
+- View Q&A conversations for Design and Tickets
+- Download any document as markdown
+- See which documents are available
 
 ## 📝 Configuration
 
@@ -323,8 +337,8 @@ source .venv/bin/activate
 
 ## 🎯 Roadmap
 
-- [ ] WebSocket support for real-time progress updates
-- [ ] Document viewer with markdown rendering
+- [x] WebSocket support for real-time progress updates
+- [x] Document viewer with markdown rendering
 - [ ] Inline feedback editor in UI
 - [ ] Project management (save/load multiple projects)
 - [ ] Authentication and user management
