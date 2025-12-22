@@ -15,7 +15,10 @@ import tempfile
 ENGINE_PATH = Path(__file__).parent.parent.parent.parent.parent / "packages" / "engine"
 sys.path.insert(0, str(ENGINE_PATH))
 
-from src.llm.factory import LLMFactory
+from baml_client import b  # BAML client with functions
+from baml_client.types import BRD, DesignSpec, TicketSpec
+from src.llm.factory import LLMFactory  # Still used for Q&A agents
+from src.baml.client_registry import BAMLClientRegistry
 from src.personas.loader import PersonaLoader
 from src.agents.strategist import StrategistAgent
 from src.agents.designer import DesignerAgent
@@ -23,7 +26,6 @@ from src.agents.po import POAgent
 from src.agents.conversation import ConversationOrchestrator
 from src.io.markdown_writer import MarkdownWriter
 from src.io.markdown_parser import MarkdownParser
-from baml_client import b
 
 
 class PipelineExecutor:
@@ -52,36 +54,73 @@ class PipelineExecutor:
         model = agent_config.get("model")
         api_key_env = agent_config.get("api_key_env")
 
+        # If no API key env specified, use provider default
+        if not api_key_env:
+            api_key_env_defaults = {
+                'gemini': 'GEMINI_API_KEY',
+                'claude': 'ANTHROPIC_API_KEY',
+                'openai': 'OPENAI_API_KEY'
+            }
+            api_key_env = api_key_env_defaults.get(provider, 'GEMINI_API_KEY')
+
+        # If no model specified, use provider default
+        if not model:
+            model_defaults = {
+                'gemini': 'gemini-2.5-pro',
+                'claude': 'claude-sonnet-4-5',
+                'openai': 'gpt-4'
+            }
+            model = model_defaults.get(provider, 'gemini-2.5-pro')
+
         return LLMFactory.create(
             provider=provider,
             model=model,
             api_key_env=api_key_env
         )
 
+    def _get_baml_options(self) -> Dict[str, Any]:
+        """Get BAML options for provider selection via ClientRegistry"""
+        api_params = {}
+
+        # Map llm_config to ClientRegistry format
+        for agent_name, config in self.llm_config.items():
+            if "provider" in config:
+                api_params[f"{agent_name}_provider"] = config["provider"]
+
+        # Create registry and get client registry
+        registry = BAMLClientRegistry(api_params if api_params else None)
+        client_registry = registry.get_client_registry()
+
+        # Return BAML options
+        if client_registry:
+            return {"client_registry": client_registry}
+        return {}
+
     async def generate_brd(self, feedback: Optional[str] = None) -> Dict[str, Any]:
-        """Generate Business Requirements Document"""
+        """Generate Business Requirements Document using BAML"""
         try:
             # Load strategist persona
             strategist_prompt = self.persona_loader.get_prompt("strategist")
 
-            # Create LLM client
-            llm_client = self._get_llm_client("strategist")
+            # Get BAML options for provider selection
+            baml_options = self._get_baml_options()
 
-            # Build prompt
+            # Generate BRD using BAML function
             if feedback:
-                user_prompt = (
-                    f"Product Vision:\n{self.vision}\n\n"
-                    f"Previous BRD Feedback:\n{feedback}\n\n"
-                    "Please regenerate the BRD incorporating the feedback above."
+                # Use BAML function for regeneration with feedback
+                brd_response = await b.GenerateBRDWithFeedback(
+                    vision=self.vision,
+                    feedback=feedback,
+                    persona=strategist_prompt,
+                    baml_options=baml_options
                 )
             else:
-                user_prompt = f"Product Vision:\n{self.vision}"
-
-            # Generate BRD using BAML
-            brd_response = await b.GenerateBRD(
-                persona=strategist_prompt,
-                user_input=user_prompt
-            )
+                # Use BAML function for initial generation
+                brd_response = await b.GenerateBRD(
+                    vision=self.vision,
+                    persona=strategist_prompt,
+                    baml_options=baml_options
+                )
 
             # Convert to dict
             brd = brd_response.model_dump()
@@ -106,7 +145,7 @@ class PipelineExecutor:
             raise Exception(f"BRD generation failed: {str(e)}")
 
     async def generate_design(self, feedback: Optional[str] = None) -> Dict[str, Any]:
-        """Generate Design Specification with Q&A"""
+        """Generate Design Specification with Q&A using BAML"""
         try:
             # Load BRD
             brd_file = self.output_dir / "brd.json"
@@ -120,7 +159,7 @@ class PipelineExecutor:
             designer_prompt = self.persona_loader.get_prompt("designer")
             strategist_prompt = self.persona_loader.get_prompt("strategist")
 
-            # Create LLM clients
+            # Create LLM clients for Q&A session (Python orchestration)
             designer_llm = self._get_llm_client("designer")
             strategist_llm = self._get_llm_client("strategist")
 
@@ -137,7 +176,7 @@ class PipelineExecutor:
                 llm_client=strategist_llm
             )
 
-            # Run Q&A session
+            # Run Q&A session (stays in Python for dynamic orchestration)
             orchestrator = ConversationOrchestrator(self.output_dir)
             brd_text = json.dumps(brd, indent=2)
             qa_conversation = orchestrator.run_qa_session(
@@ -147,30 +186,44 @@ class PipelineExecutor:
                 num_questions=5
             )
 
-            # Build prompt
-            schema_hint = "Generate a comprehensive design specification in JSON format matching the DesignSpec schema."
+            # Get BAML options for provider selection
+            baml_options = self._get_baml_options()
 
+            # Refine BRD using BAML function (type-safe)
+            refined_brd = await b.RefineBRD(
+                original_brd=brd_text,
+                qa_conversation=qa_conversation,
+                persona=strategist_prompt,
+                baml_options=baml_options
+            )
+
+            # Save refined BRD (overwrite original)
+            refined_output_file = self.output_dir / "BRD.md"
+            MarkdownWriter.write_brd(refined_brd, refined_output_file)
+
+            refined_json_file = self.output_dir / "brd.json"
+            with open(refined_json_file, "w") as f:
+                json.dump(refined_brd.model_dump(), f, indent=2)
+
+            # Update brd_text to use refined version
+            brd_text = json.dumps(refined_brd.model_dump(), indent=2)
+
+            # Generate design spec using BAML function (type-safe)
             if feedback:
-                user_prompt = (
-                    f"{schema_hint}\n\n"
-                    f"Here is the validated BRD:\n{brd_text}\n\n"
-                    f"Additional context from Q&A session with Product Strategist:\n{qa_conversation}\n\n"
-                    f"Previous Design Feedback:\n{feedback}\n\n"
-                    "Please regenerate the design spec incorporating the feedback above."
+                design_response = await b.GenerateDesignWithFeedback(
+                    brd=brd_text,
+                    qa_conversation=qa_conversation,
+                    feedback=feedback,
+                    persona=designer_prompt,
+                    baml_options=baml_options
                 )
             else:
-                user_prompt = (
-                    f"{schema_hint}\n\n"
-                    f"Here is the validated BRD:\n{brd_text}\n\n"
-                    f"Additional context from Q&A session with Product Strategist:\n{qa_conversation}"
+                design_response = await b.GenerateDesign(
+                    brd=brd_text,
+                    qa_conversation=qa_conversation,
+                    persona=designer_prompt,
+                    baml_options=baml_options
                 )
-
-            # Generate design spec using BAML
-            design_response = await b.GenerateDesignSpec(
-                persona=designer_prompt,
-                brd=json.dumps(brd),
-                user_input=user_prompt
-            )
 
             # Convert to dict
             design = design_response.model_dump()
@@ -196,7 +249,7 @@ class PipelineExecutor:
             raise Exception(f"Design generation failed: {str(e)}")
 
     async def generate_tickets(self, feedback: Optional[str] = None) -> Dict[str, Any]:
-        """Generate Development Tickets with Q&A"""
+        """Generate Development Tickets with Q&A using BAML"""
         try:
             # Load BRD and Design
             brd_file = self.output_dir / "brd.json"
@@ -216,7 +269,7 @@ class PipelineExecutor:
             designer_prompt = self.persona_loader.get_prompt("designer")
             strategist_prompt = self.persona_loader.get_prompt("strategist")
 
-            # Create LLM clients
+            # Create LLM clients for Q&A session (Python orchestration)
             po_llm = self._get_llm_client("po")
             designer_llm = self._get_llm_client("designer")
             strategist_llm = self._get_llm_client("strategist")
@@ -240,7 +293,7 @@ class PipelineExecutor:
                 llm_client=strategist_llm
             )
 
-            # Run Q&A session
+            # Run Q&A session (stays in Python for dynamic orchestration)
             orchestrator = ConversationOrchestrator(self.output_dir)
             design_text = json.dumps(design, indent=2)
             brd_text = json.dumps(brd, indent=2)
@@ -255,40 +308,34 @@ class PipelineExecutor:
                 num_questions=5
             )
 
-            # Build prompt
-            schema_hint = "Generate development tickets in JSON format matching the TicketSpec schema."
+            # Get BAML options for provider selection
+            baml_options = self._get_baml_options()
 
+            # Generate tickets using BAML function (type-safe)
             if feedback:
-                user_prompt = (
-                    f"{schema_hint}\n\n"
-                    f"BRD:\n{brd_text}\n\n"
-                    f"Design Spec:\n{design_text}\n\n"
-                    f"Additional context from Q&A:\n{qa_conversation}\n\n"
-                    f"Previous Tickets Feedback:\n{feedback}\n\n"
-                    "Please regenerate the tickets incorporating the feedback above."
+                tickets_response = await b.GenerateTicketsWithFeedback(
+                    brd=brd_text,
+                    design=design_text,
+                    qa_conversation=qa_conversation,
+                    feedback=feedback,
+                    persona=po_prompt,
+                    baml_options=baml_options
                 )
             else:
-                user_prompt = (
-                    f"{schema_hint}\n\n"
-                    f"BRD:\n{brd_text}\n\n"
-                    f"Design Spec:\n{design_text}\n\n"
-                    f"Additional context from Q&A:\n{qa_conversation}"
+                tickets_response = await b.GenerateTickets(
+                    brd=brd_text,
+                    design=design_text,
+                    qa_conversation=qa_conversation,
+                    persona=po_prompt,
+                    baml_options=baml_options
                 )
-
-            # Generate tickets using BAML
-            tickets_response = await b.GenerateDevelopmentTickets(
-                persona=po_prompt,
-                brd=json.dumps(brd),
-                design_spec=json.dumps(design),
-                user_input=user_prompt
-            )
 
             # Convert to dict
             tickets = tickets_response.model_dump()
 
             # Write to markdown
             output_file = self.output_dir / "development-tickets.md"
-            MarkdownWriter.write_tickets(tickets_response, output_file)
+            MarkdownWriter.write_tickets([tickets_response], output_file)
 
             # Also write JSON
             json_file = self.output_dir / "development-tickets.json"

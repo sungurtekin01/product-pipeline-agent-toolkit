@@ -30,7 +30,7 @@ export function useWebSocket({
   const connect = useCallback(() => {
     if (!taskId) return;
 
-    const wsUrl = `ws://localhost:8000/api/pipeline/ws/${taskId}`;
+    const wsUrl = `ws://127.0.0.1:8000/api/pipeline/ws/${taskId}`;
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onopen = () => {

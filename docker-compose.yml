@@ -8,13 +8,15 @@ services:
       - "8000:8000"
     volumes:
       # Mount output directory for generated documents
-      - ./docs:/app/docs
+      - ./docs:/app/apps/api/docs
+    env_file:
+      - .env
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +29,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
     depends_on:
       api:
         condition: service_healthy

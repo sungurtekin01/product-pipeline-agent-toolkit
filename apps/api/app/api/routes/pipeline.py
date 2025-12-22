@@ -129,13 +129,24 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
 
 
 # Background execution function
-async def execute_step(
+def execute_step(
     task_id: str,
     config: PipelineConfig,
     step: str,
     feedback: Optional[str] = None
 ):
     """Execute a pipeline step in the background"""
+    import asyncio
+    asyncio.run(execute_step_async(task_id, config, step, feedback))
+
+
+async def execute_step_async(
+    task_id: str,
+    config: PipelineConfig,
+    step: str,
+    feedback: Optional[str] = None
+):
+    """Async implementation of pipeline step execution"""
     from app.services.pipeline_executor import PipelineExecutor
     from pathlib import Path
 
@@ -229,6 +240,11 @@ async def execute_step(
         })
 
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Pipeline execution error for task {task_id}:")
+        print(error_details)
+
         tasks[task_id].status = "failed"
         tasks[task_id].error = str(e)
         tasks[task_id].completed_at = datetime.now()

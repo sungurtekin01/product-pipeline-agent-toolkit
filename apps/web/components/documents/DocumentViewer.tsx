@@ -177,7 +177,7 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
           )}
 
           {!loading && !error && currentDoc && (
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-gray prose-sm max-w-none text-gray-900">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {currentDoc.content}
               </ReactMarkdown>

@@ -61,8 +61,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   currentTaskId: null,
   isExecuting: false,
   vision: '',
-  llmProvider: 'gemini',
-  llmModel: 'gemini-2.0-flash-exp',
+  llmProvider: 'gemini-2.5-pro',
+  llmModel: 'gemini-2.5-pro',
 
   // Actions
   setNodeStatus: (nodeId, status, progress = 0, message) =>

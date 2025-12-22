@@ -64,7 +64,11 @@ const initialEdges: Edge[] = [
   },
 ];
 
-export default function PipelineCanvas() {
+interface PipelineCanvasProps {
+  onRunStep?: (step: 'brd' | 'design' | 'tickets') => void;
+}
+
+export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
   const pipelineNodes = usePipelineStore((state) => state.nodes);
 
   // Build React Flow nodes from pipeline store
@@ -77,6 +81,7 @@ export default function PipelineCanvas() {
       description: def.description,
       status: pipelineNodes[def.id]?.status || 'pending',
       progress: pipelineNodes[def.id]?.progress || 0,
+      onRun: onRunStep ? () => onRunStep(def.id as 'brd' | 'design' | 'tickets') : undefined,
     },
   }));
 
@@ -95,13 +100,14 @@ export default function PipelineCanvas() {
               ...node.data,
               status: storeNode.status,
               progress: storeNode.progress,
+              onRun: onRunStep ? () => onRunStep(node.id as 'brd' | 'design' | 'tickets') : undefined,
             },
           };
         }
         return node;
       })
     );
-  }, [pipelineNodes, setNodes]);
+  }, [pipelineNodes, setNodes, onRunStep]);
 
   const nodeTypes = useMemo(
     () => ({

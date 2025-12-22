@@ -4,27 +4,26 @@ generate_brd.py - Business Requirements Document Generator
 Part of Sait's Product Pipeline Toolkit
 
 This script generates a structured Business Requirements Document (BRD) from a product vision
-using the Gemini API. The output is validated against a BAML schema and saved as brd.json.
+using BAML functions and configurable LLM providers (Gemini, Claude, OpenAI).
+The output is type-safe and validated against BAML schemas.
 
 Usage:
-    # With config file (product.config.json in project root):
-    python scripts/generate_brd.py --project /path/to/project
-
-    # With command-line arguments:
+    # Default (uses Gemini):
     python scripts/generate_brd.py --vision "Your product vision" --output docs/product
 
-    # Backward compatible (from toolkit directory):
-    python scripts/generate_brd.py
+    # With specific provider:
+    python scripts/generate_brd.py --vision "..." --output docs/ --provider claude
+
+    # With feedback regeneration (auto-detected from docs/conversations/feedback/brd-feedback.md):
+    python scripts/generate_brd.py --output docs/
 
 Requirements:
-    - Google Gemini API key
+    - LLM API key in .env (GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY)
     - BAML client generated from baml_src/ schemas
 """
 
 import argparse
-import json
-import os
-import re
+import asyncio
 import sys
 from pathlib import Path
 
@@ -35,9 +34,10 @@ load_dotenv()
 toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
+from baml_client import b  # BAML client with functions
 from baml_client.types import BRD  # Your BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
-from src.llm.factory import LLMFactory
+from src.baml.client_registry import BAMLClientRegistry
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
 from src.io.markdown_parser import MarkdownParser
@@ -66,18 +66,19 @@ output_path = pipeline_config.get_output_dir(cli_override=args.output)
 output_path.mkdir(parents=True, exist_ok=True)
 print(f"✓ Output directory: {output_path}")
 
-# Create LLM client with CLI overrides
-cli_override = {}
+# Configure client registry for provider selection
+api_params = {}
 if args.provider:
-    cli_override['provider'] = args.provider
-if args.model:
-    cli_override['model'] = args.model
+    api_params['strategist_provider'] = args.provider
+    print(f"✓ Using provider: {args.provider}")
 
-llm_client = LLMFactory.from_config(
-    pipeline_config.get_raw_config(),
-    'strategist',
-    cli_override if cli_override else None
-)
+registry = BAMLClientRegistry(api_params if api_params else None)
+client_registry = registry.get_client_registry()
+
+# Build BAML options
+baml_options = {}
+if client_registry:
+    baml_options["client_registry"] = client_registry
 
 # Load strategist persona from TOML file
 personas_dir = toolkit_dir / 'personas'
@@ -88,37 +89,35 @@ strategist_prompt = persona_loader.get_prompt('strategist')
 feedback_file = output_path / 'conversations' / 'feedback' / 'brd-feedback.md'
 feedback = MarkdownParser.read_feedback(feedback_file)
 
-if feedback:
-    print(f"\n📝 Found feedback at {feedback_file}")
-    print("🔄 Regenerating BRD with feedback incorporated...\n")
-    user_prompt = (
-        f"Product Vision:\n{product_vision}\n\n"
-        f"Previous BRD Feedback:\n{feedback}\n\n"
-        "Please regenerate the BRD incorporating the feedback above."
-    )
-else:
-    print("✓ No feedback found, generating initial BRD...\n")
-    user_prompt = f"Product Vision:\n{product_vision}"
+async def generate_brd_async():
+    """Async wrapper for BAML BRD generation"""
+    if feedback:
+        print(f"\n📝 Found feedback at {feedback_file}")
+        print("🔄 Regenerating BRD with feedback incorporated...\n")
 
-# Generate BRD using LLM client
-response = llm_client.generate(user_prompt, system_prompt=strategist_prompt)
+        # Use BAML function for regeneration with feedback
+        return await b.GenerateBRDWithFeedback(
+            vision=product_vision,
+            feedback=feedback,
+            persona=strategist_prompt,
+            baml_options=baml_options
+        )
+    else:
+        print("✓ No feedback found, generating initial BRD...\n")
 
-# Clean response (removes code fences)
-cleaned = llm_client.clean_response(response)
-
-# If 'cleaned' is still empty, print for debugging:
-if not cleaned:
-    print('Cleaned string is empty. Raw output was:', response)
-    exit(1)
-
-print('Cleaned:', repr(cleaned))
+        # Use BAML function for initial generation
+        return await b.GenerateBRD(
+            vision=product_vision,
+            persona=strategist_prompt,
+            baml_options=baml_options
+        )
 
 try:
-    json_response = json.loads(cleaned)
-    brd = BRD(**json_response)
+    # Run async BAML function
+    brd = asyncio.run(generate_brd_async())
+
 except Exception as e:
-    print("Error validating or parsing model output:", e)
-    print("Raw response:\n", response)
+    print(f"❌ Error generating BRD: {e}")
     exit(1)
 
 print("BRD Title:", brd.title)

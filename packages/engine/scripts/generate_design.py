@@ -3,31 +3,29 @@ generate_design.py - Design Specification Generator
 
 Part of Sait's Product Pipeline Toolkit
 
-This script generates detailed design specifications from a BRD using the Gemini API
-and a designer persona. The output includes screens, components, and wireframes,
-validated against a BAML schema.
+This script generates detailed design specifications from a BRD using BAML functions
+and configurable LLM providers (Gemini, Claude, OpenAI). Includes Q&A session between
+Designer and Strategist, then generates validated design spec.
 
 Usage:
-    # With config file (product.config.json in project root):
-    python scripts/generate_design.py --project /path/to/project
-
-    # With command-line arguments:
+    # Default (uses Gemini):
     python scripts/generate_design.py --output docs/product
 
-    # Backward compatible (from toolkit directory):
-    python scripts/generate_design.py
+    # With specific provider:
+    python scripts/generate_design.py --output docs/ --provider claude
+
+    # With feedback regeneration (auto-detected from docs/conversations/feedback/design-feedback.md):
+    python scripts/generate_design.py --output docs/
 
 Requirements:
     - brd.json (from generate_brd.py)
-    - Google Gemini API key
-    - Designer persona file (rn_designer.toml)
+    - LLM API key in .env (GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY)
     - BAML client generated from baml_src/ schemas
 """
 
 import argparse
+import asyncio
 import json
-import os
-import re
 import sys
 from pathlib import Path
 
@@ -38,8 +36,10 @@ load_dotenv()
 toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
-from baml_client.types import DesignSpec  # BAML-generated schema
+from baml_client import b  # BAML client with functions
+from baml_client.types import DesignSpec  # BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
+from src.baml.client_registry import BAMLClientRegistry
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
@@ -65,6 +65,8 @@ if pipeline_config.has_config():
 
 # Get output directory with CLI override
 output_path = pipeline_config.get_output_dir(cli_override=args.output)
+output_path.mkdir(parents=True, exist_ok=True)
+print(f"✓ Output directory: {output_path}")
 
 # Load the previously validated BRD from project directory
 brd_file = output_path / 'brd.json'
@@ -77,6 +79,20 @@ with open(brd_file) as f:
     brd = json.load(f)
 print(f"✓ Loaded BRD from {brd_file}")
 
+# Configure client registry for provider selection
+api_params = {}
+if args.provider:
+    api_params['designer_provider'] = args.provider
+    print(f"✓ Using provider: {args.provider}")
+
+registry = BAMLClientRegistry(api_params if api_params else None)
+client_registry = registry.get_client_registry()
+
+# Build BAML options
+baml_options = {}
+if client_registry:
+    baml_options["client_registry"] = client_registry
+
 # Load personas
 personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
@@ -84,7 +100,7 @@ designer_prompt = persona_loader.get_prompt('designer')
 strategist_prompt = persona_loader.get_prompt('strategist')
 print(f"✓ Loaded designer and strategist personas")
 
-# Create LLM clients with CLI overrides
+# Create LLM clients for Q&A session (Python agents stay in Python)
 cli_override = {}
 if args.provider:
     cli_override['provider'] = args.provider
@@ -132,68 +148,59 @@ qa_conversation = orchestrator.run_qa_session(
 
 print("="*60 + "\n")
 
-# Use designer LLM client for final generation
-llm_client = designer_llm
-
 # Check for feedback and incorporate if exists
 feedback_file = output_path / 'conversations' / 'feedback' / 'design-feedback.md'
 feedback = MarkdownParser.read_feedback(feedback_file)
 
-# Provide a schema hint to guide LLM output structure
-schema_hint = (
-    "Output a single JSON object matching this schema: "
-    '{ "summary": string, "screens": [ { "name": string, "description": string, "wireframe": string, "components": [ { "name": string, "description": string, "code_snippet": string, "notes": string } ] } ] }'
-)
+async def generate_design_async():
+    """Async wrapper for BAML Design generation"""
+    if feedback:
+        print(f"\n📝 Found feedback at {feedback_file}")
+        print("🔄 Regenerating design spec with feedback incorporated...\n")
 
-# Compose the user prompt with Q&A context and optional feedback
-if feedback:
-    print(f"📝 Found feedback at {feedback_file}")
-    print("🔄 Regenerating design spec with feedback incorporated...\n")
-    user_prompt = (
-        f"{schema_hint}\n\n"
-        "Here is the validated BRD:\n"
-        f"{json.dumps(brd, indent=2)}\n\n"
-        "Additional context from Q&A session with Product Strategist:\n"
-        f"{qa_conversation}\n\n"
-        f"Previous Design Feedback:\n{feedback}\n\n"
-        "Please regenerate the design spec incorporating the feedback above."
-    )
-else:
-    print("✓ No feedback found, generating design spec...\n")
-    user_prompt = (
-        f"{schema_hint}\n\n"
-        "Here is the validated BRD:\n"
-        f"{json.dumps(brd, indent=2)}\n\n"
-        "Additional context from Q&A session with Product Strategist:\n"
-        f"{qa_conversation}"
-    )
+        # Use BAML function for regeneration with feedback
+        return await b.GenerateDesignWithFeedback(
+            brd=brd_text,
+            qa_conversation=qa_conversation,
+            feedback=feedback,
+            persona=designer_prompt,
+            baml_options=baml_options
+        )
+    else:
+        print("✓ No feedback found, generating design spec...\n")
 
-# Generate design spec using LLM client
-response = llm_client.generate(user_prompt, system_prompt=designer_prompt)
-
-# Clean response (removes code fences)
-cleaned = llm_client.clean_response(response)
+        # Use BAML function for initial generation
+        return await b.GenerateDesign(
+            brd=brd_text,
+            qa_conversation=qa_conversation,
+            persona=designer_prompt,
+            baml_options=baml_options
+        )
 
 try:
-    json_response = json.loads(cleaned)
-    design = DesignSpec(**json_response)
+    # Run async BAML function
+    design = asyncio.run(generate_design_async())
+
 except Exception as e:
-    print("Error validating design artifact:", e)
-    print("Raw output:\n", cleaned)
+    print(f"❌ Error generating design spec: {e}")
     exit(1)
+
+print("Design Summary:", design.summary[:100] + "..." if len(design.summary) > 100 else design.summary)
+print(f"\nScreens ({len(design.screens)}):")
+for i, screen in enumerate(design.screens, 1):
+    print(f"{i}. {screen.name}")
 
 # Save design spec as markdown (primary output format)
 design_md_output = output_path / 'design-spec.md'
 MarkdownWriter.write_design_spec(design, design_md_output)
-print(f"✓ Design spec saved to {design_md_output}")
+print(f"\n✓ Design spec saved to {design_md_output}")
 
 # Also save as JSON for inter-script compatibility
 design_json_output = output_path / 'design-spec.json'
 with open(design_json_output, "w") as f:
     try:
-        f.write(design.model_dump_json(indent=2))  # Pydantic v2
+        f.write(design.model_dump_json(indent=2))  # Pydantic v2+
     except AttributeError:
-        f.write(design.json(indent=2))             # Pydantic v1
+        f.write(design.json(indent=2))  # Pydantic v1 fallback
 
 print(f"✓ Design spec (JSON) saved to {design_json_output}")
-

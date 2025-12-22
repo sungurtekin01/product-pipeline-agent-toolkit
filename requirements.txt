@@ -1,4 +1,5 @@
-google-generativeai>=0.3.0
+toml>=0.10.2
+google-genai>=0.2.0
 python-dotenv>=1.0.0
 baml-py==0.213.0
 pydantic>=2.0.0

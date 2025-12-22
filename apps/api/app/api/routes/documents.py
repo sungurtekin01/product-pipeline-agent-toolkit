@@ -13,6 +13,42 @@ class FeedbackRequest(BaseModel):
     feedback: str
 
 
+@router.get("/documents/list")
+async def list_documents(output_dir: str = "docs/product"):
+    """
+    List all available documents
+
+    Returns:
+        List of available documents with their status
+    """
+    output_path = Path(output_dir)
+
+    documents = {
+        'brd': {
+            'name': 'Business Requirements Document',
+            'file': 'BRD.md',
+            'exists': (output_path / 'BRD.md').exists()
+        },
+        'design': {
+            'name': 'Design Specification',
+            'file': 'design-spec.md',
+            'exists': (output_path / 'design-spec.md').exists(),
+            'qa': (output_path / 'conversations' / 'design-qa.md').exists()
+        },
+        'tickets': {
+            'name': 'Development Tickets',
+            'file': 'development-tickets.md',
+            'exists': (output_path / 'development-tickets.md').exists(),
+            'qa': (output_path / 'conversations' / 'tickets-qa.md').exists()
+        }
+    }
+
+    return {
+        "output_dir": str(output_path),
+        "documents": documents
+    }
+
+
 @router.get("/documents/{step}")
 async def get_document(step: str, output_dir: str = "docs/product"):
     """
@@ -118,42 +154,6 @@ async def get_qa_conversation(step: str, output_dir: str = "docs/product"):
             status_code=500,
             detail=f"Error reading Q&A conversation: {str(e)}"
         )
-
-
-@router.get("/documents/list")
-async def list_documents(output_dir: str = "docs/product"):
-    """
-    List all available documents
-
-    Returns:
-        List of available documents with their status
-    """
-    output_path = Path(output_dir)
-
-    documents = {
-        'brd': {
-            'name': 'Business Requirements Document',
-            'file': 'BRD.md',
-            'exists': (output_path / 'BRD.md').exists()
-        },
-        'design': {
-            'name': 'Design Specification',
-            'file': 'design-spec.md',
-            'exists': (output_path / 'design-spec.md').exists(),
-            'qa': (output_path / 'conversations' / 'design-qa.md').exists()
-        },
-        'tickets': {
-            'name': 'Development Tickets',
-            'file': 'development-tickets.md',
-            'exists': (output_path / 'development-tickets.md').exists(),
-            'qa': (output_path / 'conversations' / 'tickets-qa.md').exists()
-        }
-    }
-
-    return {
-        "output_dir": str(output_path),
-        "documents": documents
-    }
 
 
 @router.post("/documents/{step}/feedback")

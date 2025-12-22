@@ -8,6 +8,7 @@ export type PipelineNodeData = {
   description: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress?: number;
+  onRun?: () => void;
 };
 
 export default function PipelineNode({ data }: NodeProps) {
@@ -57,12 +58,24 @@ export default function PipelineNode({ data }: NodeProps) {
       <div className="text-sm text-gray-600 mb-3">{nodeData.description}</div>
 
       {nodeData.status === 'running' && nodeData.progress !== undefined && (
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${nodeData.progress}%` }}
           />
         </div>
+      )}
+
+      {nodeData.onRun && nodeData.status !== 'running' && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            nodeData.onRun?.();
+          }}
+          className="w-full mt-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+        >
+          {nodeData.status === 'completed' ? 'Re-run' : 'Run'}
+        </button>
       )}
 
       <Handle type="source" position={Position.Right} className="w-3 h-3" />

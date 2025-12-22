@@ -4,30 +4,29 @@ generate_tickets.py - Development Tickets Generator
 Part of Sait's Product Pipeline Toolkit
 
 This script generates development tickets organized by milestones from a BRD and design spec
-using the Gemini API and a product owner persona. Tickets include acceptance criteria,
-priorities, and dependencies.
+using BAML functions and configurable LLM providers (Gemini, Claude, OpenAI). Includes Q&A
+session between PO, Designer, and Strategist, then generates validated tickets.
 
 Usage:
-    # With config file (product.config.json in project root):
-    python scripts/generate_tickets.py --project /path/to/project
-
-    # With command-line arguments:
+    # Default (uses Gemini):
     python scripts/generate_tickets.py --output docs/product
 
-    # Backward compatible (from toolkit directory):
-    python scripts/generate_tickets.py
+    # With specific provider:
+    python scripts/generate_tickets.py --output docs/ --provider claude
+
+    # With feedback regeneration (auto-detected from docs/conversations/feedback/tickets-feedback.md):
+    python scripts/generate_tickets.py --output docs/
 
 Requirements:
     - brd.json (from generate_brd.py)
     - design-spec.json (from generate_design.py)
-    - Google Gemini API key
-    - Product owner persona file (po.toml)
+    - LLM API key in .env (GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY)
+    - BAML client generated from baml_src/ schemas
 """
 
 import argparse
+import asyncio
 import json
-import os
-import re
 import sys
 from pathlib import Path
 
@@ -38,8 +37,10 @@ load_dotenv()
 toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
-from src.schemas.tickets import TicketSpec
+from baml_client import b  # BAML client with functions
+from baml_client.types import TicketSpec  # BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
+from src.baml.client_registry import BAMLClientRegistry
 from src.llm.factory import LLMFactory
 from src.pipeline.config import PipelineConfig
 from src.io.markdown_writer import MarkdownWriter
@@ -66,6 +67,8 @@ if pipeline_config.has_config():
 
 # Get output directory with CLI override
 output_path = pipeline_config.get_output_dir(cli_override=args.output)
+output_path.mkdir(parents=True, exist_ok=True)
+print(f"✓ Output directory: {output_path}")
 
 # Load BRD from project directory
 brd_file = output_path / 'brd.json'
@@ -89,6 +92,20 @@ with open(design_file) as f:
     design_spec = json.load(f)
 print(f"✓ Loaded design spec from {design_file}")
 
+# Configure client registry for provider selection
+api_params = {}
+if args.provider:
+    api_params['po_provider'] = args.provider
+    print(f"✓ Using provider: {args.provider}")
+
+registry = BAMLClientRegistry(api_params if api_params else None)
+client_registry = registry.get_client_registry()
+
+# Build BAML options
+baml_options = {}
+if client_registry:
+    baml_options["client_registry"] = client_registry
+
 # Load personas
 personas_dir = toolkit_dir / 'personas'
 persona_loader = PersonaLoader(personas_dir)
@@ -97,7 +114,7 @@ designer_prompt = persona_loader.get_prompt('designer')
 strategist_prompt = persona_loader.get_prompt('strategist')
 print(f"✓ Loaded PO, designer, and strategist personas")
 
-# Create LLM clients with CLI overrides
+# Create LLM clients for Q&A session (Python agents stay in Python)
 cli_override = {}
 if args.provider:
     cli_override['provider'] = args.provider
@@ -161,76 +178,62 @@ qa_conversation = orchestrator.run_qa_session(
 
 print("="*60 + "\n")
 
-# Use PO LLM client for final generation
-llm_client = po_llm
-
 # Check for feedback and incorporate if exists
 feedback_file = output_path / 'conversations' / 'feedback' / 'tickets-feedback.md'
 feedback = MarkdownParser.read_feedback(feedback_file)
 
-# Schema hint describing ticket output structure expected from LLM
-schema_hint = (
-    "Output a JSON-formatted array of tickets grouped by milestones including fields: "
-    "title, description, priority, dependencies, acceptance_criteria, complexity."
-)
+async def generate_tickets_async():
+    """Async wrapper for BAML Tickets generation"""
+    if feedback:
+        print(f"\n📝 Found feedback at {feedback_file}")
+        print("🔄 Regenerating development tickets with feedback incorporated...\n")
 
-# Compose the user prompt including BRD, design spec, Q&A context, and optional feedback
-if feedback:
-    print(f"📝 Found feedback at {feedback_file}")
-    print("🔄 Regenerating development tickets with feedback incorporated...\n")
-    user_prompt = (
-        f"{schema_hint}\n\n"
-        "Here is the validated Business Requirements Document:\n"
-        f"{json.dumps(brd, indent=2)}\n\n"
-        "Here is the validated Design Spec:\n"
-        f"{json.dumps(design_spec, indent=2)}\n\n"
-        "Additional context from Q&A session with Designer and Strategist:\n"
-        f"{qa_conversation}\n\n"
-        f"Previous Tickets Feedback:\n{feedback}\n\n"
-        "Please regenerate the development tickets incorporating the feedback above."
-    )
-else:
-    print("✓ No feedback found, generating development tickets...\n")
-    user_prompt = (
-        f"{schema_hint}\n\n"
-        "Here is the validated Business Requirements Document:\n"
-        f"{json.dumps(brd, indent=2)}\n\n"
-        "Here is the validated Design Spec:\n"
-        f"{json.dumps(design_spec, indent=2)}\n\n"
-        "Additional context from Q&A session with Designer and Strategist:\n"
-        f"{qa_conversation}"
-    )
+        # Use BAML function for regeneration with feedback
+        return await b.GenerateTicketsWithFeedback(
+            brd=brd_text,
+            design=design_text,
+            qa_conversation=qa_conversation,
+            feedback=feedback,
+            persona=po_prompt,
+            baml_options=baml_options
+        )
+    else:
+        print("✓ No feedback found, generating development tickets...\n")
 
-# Generate tickets using LLM client
-response = llm_client.generate(user_prompt, system_prompt=po_prompt)
-
-# Clean response (removes code fences)
-cleaned = llm_client.clean_response(response)
+        # Use BAML function for initial generation
+        return await b.GenerateTickets(
+            brd=brd_text,
+            design=design_text,
+            qa_conversation=qa_conversation,
+            persona=po_prompt,
+            baml_options=baml_options
+        )
 
 try:
-    tickets_json = json.loads(cleaned)
-
-    # Validate tickets structure using Pydantic schema
-    # The LLM should return an array of TicketSpec objects (milestones with tickets)
-    if isinstance(tickets_json, list):
-        ticket_specs = [TicketSpec(**spec) for spec in tickets_json]
-    else:
-        # If it's a single object, wrap it in a list
-        ticket_specs = [TicketSpec(**tickets_json)]
+    # Run async BAML function
+    ticket_spec = asyncio.run(generate_tickets_async())
 
 except Exception as e:
-    print("Error parsing or validating ticket JSON:", e)
-    print("Raw response:", cleaned)
+    print(f"❌ Error generating tickets: {e}")
     exit(1)
 
+print(f"Milestone: {ticket_spec.milestone}")
+print(f"\nTickets ({len(ticket_spec.tickets)}):")
+for i, ticket in enumerate(ticket_spec.tickets, 1):
+    print(f"{i}. [{ticket.priority}] {ticket.title}")
+
 # Save tickets as markdown (primary output format)
+# MarkdownWriter.write_tickets expects a list of TicketSpec objects
 tickets_md_output = output_path / 'development-tickets.md'
-MarkdownWriter.write_tickets(ticket_specs, tickets_md_output)
-print(f"✓ Development tickets saved to {tickets_md_output}")
+MarkdownWriter.write_tickets([ticket_spec], tickets_md_output)
+print(f"\n✓ Development tickets saved to {tickets_md_output}")
 
 # Also save as JSON for inter-script compatibility
 tickets_json_output = output_path / 'development-tickets.json'
 with open(tickets_json_output, "w") as f:
-    json.dump(tickets_json, f, indent=2)
+    try:
+        f.write(ticket_spec.model_dump_json(indent=2))  # Pydantic v2+
+    except AttributeError:
+        f.write(ticket_spec.json(indent=2))  # Pydantic v1 fallback
 
 print(f"✓ Development tickets (JSON) saved to {tickets_json_output}")
