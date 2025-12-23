@@ -81,6 +81,7 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
       description: def.description,
       status: pipelineNodes[def.id]?.status || 'pending',
       progress: pipelineNodes[def.id]?.progress || 0,
+      message: pipelineNodes[def.id]?.message,
       onRun: onRunStep ? () => onRunStep(def.id as 'brd' | 'design' | 'tickets') : undefined,
     },
   }));
@@ -100,6 +101,7 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
               ...node.data,
               status: storeNode.status,
               progress: storeNode.progress,
+              message: storeNode.message,
               onRun: onRunStep ? () => onRunStep(node.id as 'brd' | 'design' | 'tickets') : undefined,
             },
           };
@@ -131,10 +133,14 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
+        minZoom={0.3}
+        maxZoom={1.5}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         className="bg-gray-50"
       >
         <Background color="#e5e7eb" gap={16} />
-        <Controls />
+        <Controls showInteractive={false} />
         <MiniMap
           nodeColor={(node) => {
             const data = node.data as PipelineNodeData;

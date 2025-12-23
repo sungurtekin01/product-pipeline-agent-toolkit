@@ -8,6 +8,7 @@ export type PipelineNodeData = {
   description: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress?: number;
+  message?: string;
   onRun?: () => void;
 };
 
@@ -43,27 +44,34 @@ export default function PipelineNode({ data }: NodeProps) {
   return (
     <div
       className={`
-        px-6 py-4 shadow-lg rounded-lg border-2 min-w-[200px]
+        px-4 py-3 shadow-lg rounded-lg border-2 min-w-[180px] max-w-[220px]
         ${getStatusColor()}
         transition-all duration-200 hover:shadow-xl
       `}
     >
       <Handle type="target" position={Position.Left} className="w-3 h-3" />
 
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-2 mb-2">
         {getStatusIcon()}
-        <div className="font-semibold text-gray-800">{nodeData.label}</div>
+        <div className="font-semibold text-gray-800 text-sm">{nodeData.label}</div>
       </div>
 
-      <div className="text-sm text-gray-600 mb-3">{nodeData.description}</div>
+      <div className="text-xs text-gray-600 mb-2">{nodeData.description}</div>
 
       {nodeData.status === 'running' && nodeData.progress !== undefined && (
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-          <div
-            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${nodeData.progress}%` }}
-          />
-        </div>
+        <>
+          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+              style={{ width: `${nodeData.progress}%` }}
+            />
+          </div>
+          {nodeData.message && (
+            <div className="text-xs text-blue-700 mb-2 truncate" title={nodeData.message}>
+              {nodeData.message}
+            </div>
+          )}
+        </>
       )}
 
       {nodeData.onRun && nodeData.status !== 'running' && (

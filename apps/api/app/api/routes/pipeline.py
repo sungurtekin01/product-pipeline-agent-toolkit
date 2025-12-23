@@ -158,7 +158,8 @@ async def execute_step_async(
             "type": "progress",
             "status": "running",
             "progress": 10,
-            "message": "Starting pipeline execution..."
+            "message": "Starting pipeline execution...",
+            "result": {"step": step}
         })
 
         # Auto-load feedback if not provided and file exists
@@ -171,7 +172,8 @@ async def execute_step_async(
                     "type": "progress",
                     "status": "running",
                     "progress": 15,
-                    "message": f"Found existing feedback, incorporating it into regeneration..."
+                    "message": f"Found existing feedback, incorporating it into regeneration...",
+                    "result": {"step": step}
                 })
 
         # Create executor
@@ -186,7 +188,8 @@ async def execute_step_async(
             "type": "progress",
             "status": "running",
             "progress": 20,
-            "message": f"Initializing {step} generation..."
+            "message": f"Initializing {step} generation...",
+            "result": {"step": step}
         })
 
         # Execute the appropriate step
@@ -195,25 +198,63 @@ async def execute_step_async(
                 "type": "progress",
                 "status": "running",
                 "progress": 30,
-                "message": "Generating Business Requirements Document..."
+                "message": "Generating Business Requirements Document...",
+                "result": {"step": step}
             })
             result = await executor.generate_brd(feedback)
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 80,
+                "message": "BRD generated successfully",
+                "result": {"step": step}
+            })
         elif step == "design":
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 30,
-                "message": "Running Q&A with Strategist..."
+                "message": "Running Q&A with Strategist...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 50,
+                "message": "Analyzing BRD and generating design questions...",
+                "result": {"step": step}
             })
             result = await executor.generate_design(feedback)
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 80,
+                "message": "Design specification generated successfully",
+                "result": {"step": step}
+            })
         elif step == "tickets":
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 30,
-                "message": "Running Q&A with Designer and Strategist..."
+                "message": "Running Q&A with Designer and Strategist...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 50,
+                "message": "Analyzing design and BRD for ticket generation...",
+                "result": {"step": step}
             })
             result = await executor.generate_tickets(feedback)
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 80,
+                "message": "Development tickets generated successfully",
+                "result": {"step": step}
+            })
         else:
             raise ValueError(f"Invalid step: {step}")
 
@@ -222,7 +263,8 @@ async def execute_step_async(
             "type": "progress",
             "status": "running",
             "progress": 90,
-            "message": "Finalizing and saving documents..."
+            "message": "Finalizing and saving documents...",
+            "result": {"step": step}
         })
 
         # Mark as completed
@@ -235,8 +277,8 @@ async def execute_step_async(
             "type": "complete",
             "status": "completed",
             "progress": 100,
-            "message": f"{step} generation completed successfully!",
-            "result": result
+            "message": f"{step.upper()} generation completed successfully!",
+            "result": {**result, "step": step}
         })
 
     except Exception as e:
@@ -254,5 +296,6 @@ async def execute_step_async(
             "status": "failed",
             "progress": 0,
             "message": f"Error: {str(e)}",
-            "error": str(e)
+            "error": str(e),
+            "result": {"step": step}
         })

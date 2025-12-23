@@ -11,11 +11,12 @@ import { hasAPIKeys } from '@/lib/utils/apiKeys';
 import { Settings } from 'lucide-react';
 
 export default function Home() {
-  const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId } = usePipelineStore();
+  const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId, nodes } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
   const [showDocuments, setShowDocuments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
+  const [logs, setLogs] = useState<Array<{ step: string; message: string; timestamp: Date }>>([]);
 
   useEffect(() => {
     setHasKeys(hasAPIKeys());
@@ -29,6 +30,14 @@ export default function Home() {
 
       // Parse the step from the message or use a default
       const step = message.result?.step || 'brd'; // Fallback to brd
+
+      // Add log entry
+      const logMessage = message.message || message.error || 'Processing...';
+      setLogs((prev) => [...prev, {
+        step: step.toUpperCase(),
+        message: logMessage,
+        timestamp: new Date()
+      }]);
 
       // Update node status based on message
       if (message.type === 'progress') {
@@ -234,6 +243,7 @@ export default function Home() {
                   disabled={isExecuting}
                 >
                   <optgroup label="Gemini (Google)">
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Default)</option>
                     <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
@@ -289,6 +299,44 @@ export default function Home() {
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Live Logs */}
+            {logs.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                  Live Logs
+                </h2>
+                <div className="bg-gray-900 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs">
+                  {logs.map((log, idx) => (
+                    <div key={idx} className="mb-1">
+                      <span className="text-blue-400">[{log.step}]</span>{' '}
+                      <span className="text-gray-300">{log.message}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setLogs([])}
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Clear logs
+                </button>
+              </div>
+            )}
+
+            {/* Current Status Messages */}
+            {isExecuting && (
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-gray-900">Status</h2>
+                {Object.entries(nodes).map(([key, node]) =>
+                  node.message && node.status === 'running' ? (
+                    <div key={key} className="p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                      <div className="font-semibold text-blue-900">{key.toUpperCase()}</div>
+                      <div className="text-blue-700">{node.message}</div>
+                    </div>
+                  ) : null
+                )}
               </div>
             )}
           </div>
