@@ -22,9 +22,9 @@ import { usePipelineStore } from '@/lib/store/pipelineStore';
 
 const nodeDefinitions = [
   {
-    id: 'brd',
-    label: 'BRD',
-    description: 'Business Requirements Document',
+    id: 'prd',
+    label: 'PRD',
+    description: 'Product Requirements Document',
     position: { x: 100, y: 200 },
   },
   {
@@ -43,8 +43,8 @@ const nodeDefinitions = [
 
 const initialEdges: Edge[] = [
   {
-    id: 'brd-design',
-    source: 'brd',
+    id: 'prd-design',
+    source: 'prd',
     target: 'design',
     type: 'smoothstep',
     animated: false,
@@ -65,7 +65,7 @@ const initialEdges: Edge[] = [
 ];
 
 interface PipelineCanvasProps {
-  onRunStep?: (step: 'brd' | 'design' | 'tickets') => void;
+  onRunStep?: (step: 'prd' | 'design' | 'tickets') => void;
 }
 
 export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
@@ -82,7 +82,7 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
       status: pipelineNodes[def.id]?.status || 'pending',
       progress: pipelineNodes[def.id]?.progress || 0,
       message: pipelineNodes[def.id]?.message,
-      onRun: onRunStep ? () => onRunStep(def.id as 'brd' | 'design' | 'tickets') : undefined,
+      onRun: onRunStep ? () => onRunStep(def.id as 'prd' | 'design' | 'tickets') : undefined,
     },
   }));
 
@@ -102,7 +102,7 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
               status: storeNode.status,
               progress: storeNode.progress,
               message: storeNode.message,
-              onRun: onRunStep ? () => onRunStep(node.id as 'brd' | 'design' | 'tickets') : undefined,
+              onRun: onRunStep ? () => onRunStep(node.id as 'prd' | 'design' | 'tickets') : undefined,
             },
           };
         }

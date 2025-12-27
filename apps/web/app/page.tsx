@@ -29,7 +29,7 @@ export default function Home() {
       console.log('WebSocket message:', message);
 
       // Parse the step from the message or use a default
-      const step = message.result?.step || 'brd'; // Fallback to brd
+      const step = message.result?.step || 'prd'; // Fallback to prd
 
       // Add log entry
       const logMessage = message.message || message.error || 'Processing...';
@@ -50,7 +50,7 @@ export default function Home() {
     },
   });
 
-  const handleRunStep = async (step: 'brd' | 'design' | 'tickets') => {
+  const handleRunStep = async (step: 'prd' | 'design' | 'tickets') => {
     if (!vision.trim()) {
       setError('Please enter a product vision');
       return;
@@ -163,10 +163,10 @@ export default function Home() {
         });
       };
 
-      // Execute BRD step
-      const brdResponse = await pipelineApi.executeStep({ config, step: 'brd' });
-      setCurrentTaskId(brdResponse.task_id);
-      await waitForCompletion(brdResponse.task_id);
+      // Execute PRD step
+      const prdResponse = await pipelineApi.executeStep({ config, step: 'prd' });
+      setCurrentTaskId(prdResponse.task_id);
+      await waitForCompletion(prdResponse.task_id);
 
       // Execute Design step
       const designResponse = await pipelineApi.executeStep({ config, step: 'design' });
@@ -199,7 +199,7 @@ export default function Home() {
             Product Pipeline Toolkit
           </h1>
           <p className="text-sm text-gray-600">
-            Vision → BRD → Design → Tickets
+            Vision → PRD → Design → Tickets
           </p>
         </div>
         <button

@@ -6,7 +6,7 @@ export interface PipelineExecutionRequest {
     output_dir: string;
     llm?: Record<string, any>;
   };
-  step: 'brd' | 'design' | 'tickets';
+  step: 'prd' | 'design' | 'tickets';
   feedback?: string;
 }
 

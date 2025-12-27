@@ -12,11 +12,11 @@ interface DocumentViewerProps {
   onClose: () => void;
 }
 
-type TabType = 'brd' | 'design' | 'tickets';
+type TabType = 'prd' | 'design' | 'tickets';
 type ViewMode = 'document' | 'qa';
 
 export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('brd');
+  const [activeTab, setActiveTab] = useState<TabType>('prd');
   const [viewMode, setViewMode] = useState<ViewMode>('document');
   const [document, setDocument] = useState<Document | null>(null);
   const [qaDoc, setQADoc] = useState<Document | null>(null);
@@ -50,8 +50,8 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
       const doc = await pipelineApi.getDocument(step);
       setDocument(doc);
 
-      // Try to load Q&A if available (not for BRD)
-      if (step !== 'brd') {
+      // Try to load Q&A if available (not for PRD)
+      if (step !== 'prd') {
         try {
           const qa = await pipelineApi.getQAConversation(step);
           setQADoc(qa);
@@ -88,7 +88,7 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
   if (!isOpen) return null;
 
   const tabs: { id: TabType; label: string; fullLabel: string; icon: typeof FileText }[] = [
-    { id: 'brd', label: 'BRD', fullLabel: 'Business Requirements Document', icon: FileText },
+    { id: 'prd', label: 'PRD', fullLabel: 'Product Requirements Document', icon: FileText },
     { id: 'design', label: 'Design Spec', fullLabel: 'Design Specification', icon: FileText },
     { id: 'tickets', label: 'Tickets', fullLabel: 'Development Tickets', icon: FileText },
   ];
@@ -135,7 +135,7 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
         </div>
 
         {/* View Mode Toggle */}
-        {qaDoc && activeTab !== 'brd' && (
+        {qaDoc && activeTab !== 'prd' && (
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200">
             <button
               onClick={() => setViewMode('document')}

@@ -7,7 +7,7 @@ import { pipelineApi } from '@/lib/api/pipelineApi';
 interface FeedbackEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  step: 'brd' | 'design' | 'tickets';
+  step: 'prd' | 'design' | 'tickets';
   stepLabel: string;
 }
 
@@ -71,7 +71,7 @@ export default function FeedbackEditor({ isOpen, onClose, step, stepLabel }: Fee
   if (!isOpen) return null;
 
   const feedbackPrompts = {
-    brd: [
+    prd: [
       'Are any key requirements missing?',
       'Are the user stories clear and complete?',
       'Are the success metrics well-defined?',

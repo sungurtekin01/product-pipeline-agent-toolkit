@@ -38,8 +38,8 @@ interface PipelineState {
 }
 
 const initialNodes: Record<string, PipelineNodeState> = {
-  brd: {
-    id: 'brd',
+  prd: {
+    id: 'prd',
     status: 'pending',
     progress: 0,
   },
