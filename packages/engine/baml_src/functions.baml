@@ -4,34 +4,32 @@
 //
 // This file defines type-safe LLM functions for document generation.
 //
-// Week 2: BRD Functions
-// Week 3: Design, Tickets, and RefineBRD functions
-//
-// Key Features:
-// - Persona prompts injected via Jinja2: {{ persona }}
+// Architecture:
+// - Persona context injected via parameter (managed by orchestration layer)
+// - Task-specific instructions defined in prompt
+// - Clear separation: persona (WHO) + task instructions (WHAT)
 // - Type-safe output validated against BAML schemas
 // - Schema auto-injection: {{ ctx.output_format }}
-// - Each function uses appropriate client (StrategistClient, DesignerClient, POClient)
 //
 // ============================================================================
 
 // ============================================================================
-// BRD Generation Functions
+// PRD Generation Functions
 // ============================================================================
 
-// Generate Business Requirements Document from product vision
+// Generate Product Requirements Document from product vision
 // Uses: StrategistClient (configurable via ClientRegistry)
-// Input: Product vision statement
-// Output: Validated BRD with title, description, objectives
-function GenerateBRD(vision: string, persona: string) -> BRD {
+// Input: Product vision statement + persona context
+// Output: Validated PRD with title, description, objectives
+function GeneratePRD(vision: string, persona: string) -> PRD {
   client StrategistClient
+
   prompt #"
     {{ persona }}
 
-    ## Task: Generate Business Requirements Document
+    ## Task: Generate Product Requirements Document
 
-    You are tasked with creating a comprehensive Business Requirements Document (BRD)
-    from the product vision below.
+    Create a comprehensive Product Requirements Document (PRD) from the product vision below.
 
     ### Product Vision:
     {{ vision }}
@@ -48,7 +46,6 @@ function GenerateBRD(vision: string, persona: string) -> BRD {
     5. Focus on WHAT and WHY, not HOW (avoid technical implementation details)
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
@@ -58,23 +55,23 @@ function GenerateBRD(vision: string, persona: string) -> BRD {
     - Each objective should be a complete sentence
     - Focus on business value and user outcomes
 
-    Generate the BRD now as a valid JSON object.
+    Generate the PRD now as a valid JSON object.
   "#
 }
 
-// Regenerate BRD incorporating user feedback
+// Regenerate PRD incorporating user feedback
 // Uses: StrategistClient (configurable via ClientRegistry)
-// Input: Product vision + previous feedback
-// Output: Improved BRD addressing feedback
-function GenerateBRDWithFeedback(vision: string, feedback: string, persona: string) -> BRD {
+// Input: Product vision + previous feedback + persona context
+// Output: Improved PRD addressing feedback
+function GeneratePRDWithFeedback(vision: string, feedback: string, persona: string) -> PRD {
   client StrategistClient
+
   prompt #"
     {{ persona }}
 
-    ## Task: Regenerate Business Requirements Document with Feedback
+    ## Task: Regenerate Product Requirements Document with Feedback
 
-    You are tasked with creating an improved Business Requirements Document (BRD)
-    that addresses the feedback provided below.
+    Create an improved Product Requirements Document (PRD) that addresses the feedback provided below.
 
     ### Product Vision:
     {{ vision }}
@@ -84,13 +81,12 @@ function GenerateBRDWithFeedback(vision: string, feedback: string, persona: stri
 
     ### Instructions:
     1. Carefully review the feedback and identify specific concerns or requests
-    2. Generate a new BRD that directly addresses each feedback point
+    2. Generate a new PRD that directly addresses each feedback point
     3. Maintain consistency with the product vision
     4. Improve clarity, specificity, and completeness based on feedback
     5. Ensure all feedback is incorporated thoughtfully
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
@@ -101,40 +97,39 @@ function GenerateBRDWithFeedback(vision: string, feedback: string, persona: stri
     - Focus on business value and user outcomes
     - Explicitly address each point raised in the feedback
 
-    Generate the improved BRD now as a valid JSON object.
+    Generate the improved PRD now as a valid JSON object.
   "#
 }
 
-// Refine BRD using insights from Q&A conversation
+// Refine PRD using insights from Q&A conversation
 // Uses: StrategistClient (configurable via ClientRegistry)
-// Input: Original BRD + Q&A conversation transcript
-// Output: Refined BRD with improved clarity and depth
-function RefineBRD(original_brd: string, qa_conversation: string, persona: string) -> BRD {
+// Input: Original PRD + Q&A conversation transcript + persona context
+// Output: Refined PRD with improved clarity and depth
+function RefinePRD(original_prd: string, qa_conversation: string, persona: string) -> PRD {
   client StrategistClient
+
   prompt #"
     {{ persona }}
 
-    ## Task: Refine Business Requirements Document
+    ## Task: Refine Product Requirements Document
 
-    You are tasked with improving a Business Requirements Document (BRD) using insights
-    gained from a Q&A conversation with other product team members.
+    Improve a Product Requirements Document (PRD) using insights gained from a Q&A conversation.
 
-    ### Original BRD:
-    {{ original_brd }}
+    ### Original PRD:
+    {{ original_prd }}
 
     ### Q&A Conversation Transcript:
     {{ qa_conversation }}
 
     ### Instructions:
-    1. Review the original BRD and the Q&A conversation carefully
+    1. Review the original PRD and the Q&A conversation carefully
     2. Identify insights, clarifications, and additional context from the conversation
-    3. Refine the BRD to incorporate these insights while maintaining its core structure
+    3. Refine the PRD to incorporate these insights while maintaining its core structure
     4. Improve clarity, specificity, and completeness based on discussion points
-    5. Ensure all valuable information from the Q&A is reflected in the refined BRD
+    5. Ensure all valuable information from the Q&A is reflected in the refined PRD
     6. Maintain consistency with the original vision and objectives
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
@@ -145,7 +140,7 @@ function RefineBRD(original_brd: string, qa_conversation: string, persona: strin
     - Focus on business value and user outcomes
     - Incorporate clarifications and additional context from the conversation
 
-    Generate the refined BRD now as a valid JSON object.
+    Generate the refined PRD now as a valid JSON object.
   "#
 }
 
@@ -153,39 +148,39 @@ function RefineBRD(original_brd: string, qa_conversation: string, persona: strin
 // Design Spec Generation Functions
 // ============================================================================
 
-// Generate Design Specification from BRD and Q&A conversation
+// Generate Design Specification from PRD and Q&A conversation
 // Uses: DesignerClient (configurable via ClientRegistry)
-// Input: BRD + Q&A conversation transcript
+// Input: PRD + Q&A conversation transcript + persona context
 // Output: Validated DesignSpec with screens, components, wireframes
-function GenerateDesign(brd: string, qa_conversation: string, persona: string) -> DesignSpec {
+function GenerateDesign(prd: string, qa_conversation: string, persona: string) -> DesignSpec {
   client DesignerClient
+
   prompt #"
     {{ persona }}
 
     ## Task: Generate Design Specification
 
-    You are tasked with creating a comprehensive Design Specification based on the
-    Business Requirements Document (BRD) and insights from Q&A conversations.
+    Create a comprehensive Design Specification based on the Product Requirements Document (PRD)
+    and insights from Q&A conversations.
 
-    ### Business Requirements Document:
-    {{ brd }}
+    ### Product Requirements Document:
+    {{ prd }}
 
     ### Q&A Conversation Transcript:
     {{ qa_conversation }}
 
     ### Instructions:
-    1. Analyze the BRD and Q&A conversation to understand product requirements
+    1. Analyze the PRD and Q&A conversation to understand product requirements
     2. Create a design specification with:
        - Overall design summary (2-3 paragraphs)
        - Key screens with descriptions
        - Wireframes for each screen (text/markdown representation)
        - Core UI components with specifications
     3. Focus on user experience, visual design, and interaction patterns
-    4. Ensure designs align with BRD objectives and user needs
+    4. Ensure designs align with PRD objectives and user needs
     5. Incorporate insights from the Q&A conversation
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
@@ -202,20 +197,20 @@ function GenerateDesign(brd: string, qa_conversation: string, persona: string) -
 
 // Regenerate Design Specification incorporating user feedback
 // Uses: DesignerClient (configurable via ClientRegistry)
-// Input: BRD + Q&A conversation + previous feedback
+// Input: PRD + Q&A conversation + previous feedback + persona context
 // Output: Improved DesignSpec addressing feedback
-function GenerateDesignWithFeedback(brd: string, qa_conversation: string, feedback: string, persona: string) -> DesignSpec {
+function GenerateDesignWithFeedback(prd: string, qa_conversation: string, feedback: string, persona: string) -> DesignSpec {
   client DesignerClient
+
   prompt #"
     {{ persona }}
 
     ## Task: Regenerate Design Specification with Feedback
 
-    You are tasked with creating an improved Design Specification that addresses
-    the feedback provided below.
+    Create an improved Design Specification that addresses the feedback provided below.
 
-    ### Business Requirements Document:
-    {{ brd }}
+    ### Product Requirements Document:
+    {{ prd }}
 
     ### Q&A Conversation Transcript:
     {{ qa_conversation }}
@@ -226,19 +221,18 @@ function GenerateDesignWithFeedback(brd: string, qa_conversation: string, feedba
     ### Instructions:
     1. Carefully review the feedback and identify specific concerns or requests
     2. Generate a new Design Specification that directly addresses each feedback point
-    3. Maintain consistency with the BRD and Q&A insights
+    3. Maintain consistency with the PRD and Q&A insights
     4. Improve clarity, completeness, and design quality based on feedback
     5. Ensure all feedback is incorporated thoughtfully
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
     - Summary should address feedback and improve design rationale
     - Update screens, wireframes, and components based on feedback
     - Maintain 3-10 key screens depending on product complexity
-    - Ensure designs align with BRD objectives and user needs
+    - Ensure designs align with PRD objectives and user needs
     - Explicitly address each point raised in the feedback
     - Focus on user experience improvements
 
@@ -250,22 +244,23 @@ function GenerateDesignWithFeedback(brd: string, qa_conversation: string, feedba
 // Tickets Generation Functions
 // ============================================================================
 
-// Generate development tickets from BRD, Design, and Q&A conversation
+// Generate development tickets from PRD, Design, and Q&A conversation
 // Uses: POClient (configurable via ClientRegistry)
-// Input: BRD + Design Spec + Q&A conversation transcript
+// Input: PRD + Design Spec + Q&A conversation transcript + persona context
 // Output: Validated TicketSpec with milestone and tickets
-function GenerateTickets(brd: string, design: string, qa_conversation: string, persona: string) -> TicketSpec {
+function GenerateTickets(prd: string, design: string, qa_conversation: string, persona: string) -> TicketSpec {
   client POClient
+
   prompt #"
     {{ persona }}
 
     ## Task: Generate Development Tickets
 
-    You are tasked with creating a comprehensive set of development tickets based on the
-    Business Requirements Document (BRD), Design Specification, and insights from Q&A conversations.
+    Create a comprehensive set of development tickets based on the Product Requirements Document (PRD),
+    Design Specification, and insights from Q&A conversations.
 
-    ### Business Requirements Document:
-    {{ brd }}
+    ### Product Requirements Document:
+    {{ prd }}
 
     ### Design Specification:
     {{ design }}
@@ -274,7 +269,7 @@ function GenerateTickets(brd: string, design: string, qa_conversation: string, p
     {{ qa_conversation }}
 
     ### Instructions:
-    1. Analyze the BRD, Design Spec, and Q&A conversation
+    1. Analyze the PRD, Design Spec, and Q&A conversation
     2. Break down the product into concrete, actionable development tickets
     3. Define milestone name that represents the product release or major phase
     4. Create tickets with:
@@ -289,7 +284,6 @@ function GenerateTickets(brd: string, design: string, qa_conversation: string, p
     6. Order tickets logically based on dependencies
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
@@ -307,20 +301,20 @@ function GenerateTickets(brd: string, design: string, qa_conversation: string, p
 
 // Regenerate development tickets incorporating user feedback
 // Uses: POClient (configurable via ClientRegistry)
-// Input: BRD + Design Spec + Q&A conversation + previous feedback
+// Input: PRD + Design Spec + Q&A conversation + previous feedback + persona context
 // Output: Improved TicketSpec addressing feedback
-function GenerateTicketsWithFeedback(brd: string, design: string, qa_conversation: string, feedback: string, persona: string) -> TicketSpec {
+function GenerateTicketsWithFeedback(prd: string, design: string, qa_conversation: string, feedback: string, persona: string) -> TicketSpec {
   client POClient
+
   prompt #"
     {{ persona }}
 
     ## Task: Regenerate Development Tickets with Feedback
 
-    You are tasked with creating an improved set of development tickets that addresses
-    the feedback provided below.
+    Create an improved set of development tickets that addresses the feedback provided below.
 
-    ### Business Requirements Document:
-    {{ brd }}
+    ### Product Requirements Document:
+    {{ prd }}
 
     ### Design Specification:
     {{ design }}
@@ -334,13 +328,12 @@ function GenerateTicketsWithFeedback(brd: string, design: string, qa_conversatio
     ### Instructions:
     1. Carefully review the feedback and identify specific concerns or requests
     2. Generate a new set of tickets that directly addresses each feedback point
-    3. Maintain consistency with the BRD, Design Spec, and Q&A insights
+    3. Maintain consistency with the PRD, Design Spec, and Q&A insights
     4. Improve clarity, completeness, and ticket quality based on feedback
     5. Ensure all feedback is incorporated thoughtfully
     6. Adjust priorities, dependencies, and acceptance criteria as needed
 
     ### Output Format:
-    Generate a JSON object with this exact structure:
     {{ ctx.output_format }}
 
     ### Requirements:
