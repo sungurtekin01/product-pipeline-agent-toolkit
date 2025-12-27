@@ -1,7 +1,7 @@
 """
 Pipeline Executor Service
 
-Integrates with packages/engine to execute pipeline steps (BRD, Design, Tickets)
+Integrates with packages/engine to execute pipeline steps (PRD, Design, Tickets)
 """
 
 import sys
@@ -16,7 +16,7 @@ ENGINE_PATH = Path(__file__).parent.parent.parent.parent.parent / "packages" / "
 sys.path.insert(0, str(ENGINE_PATH))
 
 from baml_client import b  # BAML client with functions
-from baml_client.types import BRD, DesignSpec, TicketSpec
+from baml_client.types import PRD, DesignSpec, TicketSpec
 from src.llm.factory import LLMFactory  # Still used for Q&A agents
 from src.baml.client_registry import BAMLClientRegistry
 from src.personas.loader import PersonaLoader
@@ -96,8 +96,8 @@ class PipelineExecutor:
             return {"client_registry": client_registry}
         return {}
 
-    async def generate_brd(self, feedback: Optional[str] = None) -> Dict[str, Any]:
-        """Generate Business Requirements Document using BAML"""
+    async def generate_prd(self, feedback: Optional[str] = None) -> Dict[str, Any]:
+        """Generate Product Requirements Document using BAML"""
         try:
             # Load strategist persona
             strategist_prompt = self.persona_loader.get_prompt("strategist")
@@ -105,10 +105,10 @@ class PipelineExecutor:
             # Get BAML options for provider selection
             baml_options = self._get_baml_options()
 
-            # Generate BRD using BAML function
+            # Generate PRD using BAML function
             if feedback:
                 # Use BAML function for regeneration with feedback
-                brd_response = await b.GenerateBRDWithFeedback(
+                prd_response = await b.GeneratePRDWithFeedback(
                     vision=self.vision,
                     feedback=feedback,
                     persona=strategist_prompt,
@@ -116,44 +116,44 @@ class PipelineExecutor:
                 )
             else:
                 # Use BAML function for initial generation
-                brd_response = await b.GenerateBRD(
+                prd_response = await b.GeneratePRD(
                     vision=self.vision,
                     persona=strategist_prompt,
                     baml_options=baml_options
                 )
 
             # Convert to dict
-            brd = brd_response.model_dump()
+            prd = prd_response.model_dump()
 
             # Write to markdown
-            output_file = self.output_dir / "BRD.md"
-            MarkdownWriter.write_brd(brd_response, output_file)
+            output_file = self.output_dir / "PRD.md"
+            MarkdownWriter.write_prd(prd_response, output_file)
 
             # Also write JSON for compatibility
-            json_file = self.output_dir / "brd.json"
+            json_file = self.output_dir / "prd.json"
             with open(json_file, "w") as f:
-                json.dump(brd, f, indent=2)
+                json.dump(prd, f, indent=2)
 
             return {
                 "status": "completed",
                 "output_file": str(output_file),
                 "json_file": str(json_file),
-                "data": brd
+                "data": prd
             }
 
         except Exception as e:
-            raise Exception(f"BRD generation failed: {str(e)}")
+            raise Exception(f"PRD generation failed: {str(e)}")
 
     async def generate_design(self, feedback: Optional[str] = None) -> Dict[str, Any]:
         """Generate Design Specification with Q&A using BAML"""
         try:
-            # Load BRD
-            brd_file = self.output_dir / "brd.json"
-            if not brd_file.exists():
-                raise Exception("BRD not found. Please generate BRD first.")
+            # Load PRD
+            prd_file = self.output_dir / "prd.json"
+            if not prd_file.exists():
+                raise Exception("PRD not found. Please generate PRD first.")
 
-            with open(brd_file) as f:
-                brd = json.load(f)
+            with open(prd_file) as f:
+                prd = json.load(f)
 
             # Load personas
             designer_prompt = self.persona_loader.get_prompt("designer")
@@ -178,10 +178,10 @@ class PipelineExecutor:
 
             # Run Q&A session (stays in Python for dynamic orchestration)
             orchestrator = ConversationOrchestrator(self.output_dir)
-            brd_text = json.dumps(brd, indent=2)
+            prd_text = json.dumps(prd, indent=2)
             qa_conversation = orchestrator.run_qa_session(
                 questioner=designer_agent,
-                respondents=[(strategist_agent, brd_text)],
+                respondents=[(strategist_agent, prd_text)],
                 session_name="design-qa",
                 num_questions=5
             )
@@ -189,29 +189,29 @@ class PipelineExecutor:
             # Get BAML options for provider selection
             baml_options = self._get_baml_options()
 
-            # Refine BRD using BAML function (type-safe)
-            refined_brd = await b.RefineBRD(
-                original_brd=brd_text,
+            # Refine PRD using BAML function (type-safe)
+            refined_prd = await b.RefinePRD(
+                original_prd=prd_text,
                 qa_conversation=qa_conversation,
                 persona=strategist_prompt,
                 baml_options=baml_options
             )
 
-            # Save refined BRD (overwrite original)
-            refined_output_file = self.output_dir / "BRD.md"
-            MarkdownWriter.write_brd(refined_brd, refined_output_file)
+            # Save refined PRD (overwrite original)
+            refined_output_file = self.output_dir / "PRD.md"
+            MarkdownWriter.write_prd(refined_prd, refined_output_file)
 
-            refined_json_file = self.output_dir / "brd.json"
+            refined_json_file = self.output_dir / "prd.json"
             with open(refined_json_file, "w") as f:
-                json.dump(refined_brd.model_dump(), f, indent=2)
+                json.dump(refined_prd.model_dump(), f, indent=2)
 
-            # Update brd_text to use refined version
-            brd_text = json.dumps(refined_brd.model_dump(), indent=2)
+            # Update prd_text to use refined version
+            prd_text = json.dumps(refined_prd.model_dump(), indent=2)
 
             # Generate design spec using BAML function (type-safe)
             if feedback:
                 design_response = await b.GenerateDesignWithFeedback(
-                    brd=brd_text,
+                    prd=prd_text,
                     qa_conversation=qa_conversation,
                     feedback=feedback,
                     persona=designer_prompt,
@@ -219,7 +219,7 @@ class PipelineExecutor:
                 )
             else:
                 design_response = await b.GenerateDesign(
-                    brd=brd_text,
+                    prd=prd_text,
                     qa_conversation=qa_conversation,
                     persona=designer_prompt,
                     baml_options=baml_options
@@ -251,15 +251,15 @@ class PipelineExecutor:
     async def generate_tickets(self, feedback: Optional[str] = None) -> Dict[str, Any]:
         """Generate Development Tickets with Q&A using BAML"""
         try:
-            # Load BRD and Design
-            brd_file = self.output_dir / "brd.json"
+            # Load PRD and Design
+            prd_file = self.output_dir / "prd.json"
             design_file = self.output_dir / "design-spec.json"
 
-            if not brd_file.exists() or not design_file.exists():
-                raise Exception("BRD and Design Spec required. Please generate them first.")
+            if not prd_file.exists() or not design_file.exists():
+                raise Exception("PRD and Design Spec required. Please generate them first.")
 
-            with open(brd_file) as f:
-                brd = json.load(f)
+            with open(prd_file) as f:
+                prd = json.load(f)
 
             with open(design_file) as f:
                 design = json.load(f)
@@ -296,13 +296,13 @@ class PipelineExecutor:
             # Run Q&A session (stays in Python for dynamic orchestration)
             orchestrator = ConversationOrchestrator(self.output_dir)
             design_text = json.dumps(design, indent=2)
-            brd_text = json.dumps(brd, indent=2)
+            prd_text = json.dumps(prd, indent=2)
 
             qa_conversation = orchestrator.run_qa_session(
                 questioner=po_agent,
                 respondents=[
                     (designer_agent, design_text),
-                    (strategist_agent, brd_text)
+                    (strategist_agent, prd_text)
                 ],
                 session_name="tickets-qa",
                 num_questions=5
@@ -314,7 +314,7 @@ class PipelineExecutor:
             # Generate tickets using BAML function (type-safe)
             if feedback:
                 tickets_response = await b.GenerateTicketsWithFeedback(
-                    brd=brd_text,
+                    prd=prd_text,
                     design=design_text,
                     qa_conversation=qa_conversation,
                     feedback=feedback,
@@ -323,7 +323,7 @@ class PipelineExecutor:
                 )
             else:
                 tickets_response = await b.GenerateTickets(
-                    brd=brd_text,
+                    prd=prd_text,
                     design=design_text,
                     qa_conversation=qa_conversation,
                     persona=po_prompt,

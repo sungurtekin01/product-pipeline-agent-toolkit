@@ -1,7 +1,7 @@
 """
 Product Pipeline Toolkit API
 
-FastAPI backend for executing the product pipeline (BRD → Design → Tickets)
+FastAPI backend for executing the product pipeline (PRD → Design → Tickets)
 """
 
 from fastapi import FastAPI

@@ -22,7 +22,7 @@ class PipelineConfig(BaseModel):
 class PipelineExecutionRequest(BaseModel):
     """Request to execute a pipeline step"""
     config: PipelineConfig
-    step: str  # "brd", "design", or "tickets"
+    step: str  # "prd", "design", or "tickets"
     feedback: Optional[str] = None
 
 
@@ -55,7 +55,7 @@ async def execute_pipeline_step(
     background_tasks: BackgroundTasks
 ):
     """
-    Execute a pipeline step (BRD, Design, or Tickets)
+    Execute a pipeline step (PRD, Design, or Tickets)
 
     This endpoint starts the execution in the background and returns a task ID.
     Use /status/{task_id} to poll for completion.
@@ -193,20 +193,20 @@ async def execute_step_async(
         })
 
         # Execute the appropriate step
-        if step == "brd":
+        if step == "prd":
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 30,
-                "message": "Generating Business Requirements Document...",
+                "message": "Generating Product Requirements Document...",
                 "result": {"step": step}
             })
-            result = await executor.generate_brd(feedback)
+            result = await executor.generate_prd(feedback)
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 80,
-                "message": "BRD generated successfully",
+                "message": "PRD generated successfully",
                 "result": {"step": step}
             })
         elif step == "design":
@@ -221,7 +221,7 @@ async def execute_step_async(
                 "type": "progress",
                 "status": "running",
                 "progress": 50,
-                "message": "Analyzing BRD and generating design questions...",
+                "message": "Analyzing PRD and generating design questions...",
                 "result": {"step": step}
             })
             result = await executor.generate_design(feedback)
@@ -244,7 +244,7 @@ async def execute_step_async(
                 "type": "progress",
                 "status": "running",
                 "progress": 50,
-                "message": "Analyzing design and BRD for ticket generation...",
+                "message": "Analyzing design and PRD for ticket generation...",
                 "result": {"step": step}
             })
             result = await executor.generate_tickets(feedback)

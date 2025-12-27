@@ -24,10 +24,10 @@ async def list_documents(output_dir: str = "docs/product"):
     output_path = Path(output_dir)
 
     documents = {
-        'brd': {
-            'name': 'Business Requirements Document',
-            'file': 'BRD.md',
-            'exists': (output_path / 'BRD.md').exists()
+        'prd': {
+            'name': 'Product Requirements Document',
+            'file': 'PRD.md',
+            'exists': (output_path / 'PRD.md').exists()
         },
         'design': {
             'name': 'Design Specification',
@@ -55,7 +55,7 @@ async def get_document(step: str, output_dir: str = "docs/product"):
     Get a generated document by step name
 
     Args:
-        step: One of 'brd', 'design', 'tickets'
+        step: One of 'prd', 'design', 'tickets'
         output_dir: Output directory path (default: docs/product)
 
     Returns:
@@ -63,7 +63,7 @@ async def get_document(step: str, output_dir: str = "docs/product"):
     """
     # Map step names to file names
     file_mapping = {
-        'brd': 'BRD.md',
+        'prd': 'PRD.md',
         'design': 'design-spec.md',
         'tickets': 'development-tickets.md'
     }
@@ -109,7 +109,7 @@ async def get_qa_conversation(step: str, output_dir: str = "docs/product"):
     Get Q&A conversation for a step
 
     Args:
-        step: One of 'design', 'tickets' (BRD has no Q&A)
+        step: One of 'design', 'tickets' (PRD has no Q&A)
         output_dir: Output directory path
 
     Returns:
@@ -162,17 +162,17 @@ async def save_feedback(step: str, request: FeedbackRequest, output_dir: str = "
     Save feedback for a document step
 
     Args:
-        step: One of 'brd', 'design', 'tickets'
+        step: One of 'prd', 'design', 'tickets'
         request: Feedback content
         output_dir: Output directory path
 
     Returns:
         Success message with file path
     """
-    if step not in ['brd', 'design', 'tickets']:
+    if step not in ['prd', 'design', 'tickets']:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid step. Must be one of: brd, design, tickets"
+            detail=f"Invalid step. Must be one of: prd, design, tickets"
         )
 
     # Create feedback directory
@@ -203,16 +203,16 @@ async def get_feedback(step: str, output_dir: str = "docs/product"):
     Get existing feedback for a step
 
     Args:
-        step: One of 'brd', 'design', 'tickets'
+        step: One of 'prd', 'design', 'tickets'
         output_dir: Output directory path
 
     Returns:
         Feedback content if exists, empty string otherwise
     """
-    if step not in ['brd', 'design', 'tickets']:
+    if step not in ['prd', 'design', 'tickets']:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid step. Must be one of: brd, design, tickets"
+            detail=f"Invalid step. Must be one of: prd, design, tickets"
         )
 
     feedback_file = Path(output_dir) / 'conversations' / 'feedback' / f"{step}-feedback.md"
