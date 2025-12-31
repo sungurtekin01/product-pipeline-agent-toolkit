@@ -2,6 +2,8 @@
 
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Play, CheckCircle, XCircle, Clock } from 'lucide-react';
+import PersonaMenu from './PersonaMenu';
+import type { PersonaInfo } from '@/lib/store/pipelineStore';
 
 export type PipelineNodeData = {
   label: string;
@@ -10,6 +12,10 @@ export type PipelineNodeData = {
   progress?: number;
   message?: string;
   onRun?: () => void;
+  // Persona selection
+  availablePersonas?: PersonaInfo[];
+  currentPersona?: PersonaInfo;
+  onPersonaSelect?: (personaId: string) => void;
 };
 
 export default function PipelineNode({ data }: NodeProps) {
@@ -41,6 +47,8 @@ export default function PipelineNode({ data }: NodeProps) {
     }
   };
 
+  const isRunning = nodeData.status === 'running';
+
   return (
     <div
       className={`
@@ -51,12 +59,28 @@ export default function PipelineNode({ data }: NodeProps) {
     >
       <Handle type="target" position={Position.Left} className="w-3 h-3" />
 
-      <div className="flex items-center gap-2 mb-2">
-        {getStatusIcon()}
-        <div className="font-semibold text-gray-800 text-sm">{nodeData.label}</div>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {getStatusIcon()}
+          <div className="font-semibold text-gray-800 text-sm truncate">{nodeData.label}</div>
+        </div>
+        {nodeData.availablePersonas && nodeData.availablePersonas.length > 0 && (
+          <PersonaMenu
+            personas={nodeData.availablePersonas}
+            selectedPersonaId={nodeData.currentPersona?.id || ''}
+            onSelect={(personaId) => nodeData.onPersonaSelect?.(personaId)}
+            disabled={isRunning}
+          />
+        )}
       </div>
 
       <div className="text-xs text-gray-600 mb-2">{nodeData.description}</div>
+
+      {nodeData.currentPersona && (
+        <div className="text-xs text-gray-500 mb-2 italic">
+          Persona: {nodeData.currentPersona.description || nodeData.currentPersona.name}
+        </div>
+      )}
 
       {nodeData.status === 'running' && nodeData.progress !== undefined && (
         <>
