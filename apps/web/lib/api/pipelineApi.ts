@@ -1,5 +1,19 @@
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
+export interface PersonaInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface PersonasResponse {
+  personas: {
+    strategist: PersonaInfo[];
+    designer: PersonaInfo[];
+    po: PersonaInfo[];
+  };
+}
+
 export interface PipelineExecutionRequest {
   config: {
     vision: string;
@@ -10,6 +24,7 @@ export interface PipelineExecutionRequest {
       anthropic?: string;
       openai?: string;
     };
+    personas?: Record<string, string>; // {"prd": "strategist", "design": "designer", "tickets": "po"}
   };
   step: 'prd' | 'design' | 'tickets';
   feedback?: string;
@@ -133,6 +148,19 @@ export const pipelineApi = {
 
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get available personas grouped by role
+   */
+  async getPersonas(): Promise<PersonasResponse> {
+    const response = await fetch(`${API_BASE_URL}/pipeline/personas`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to get personas: ${response.statusText}`);
     }
 
     return response.json();

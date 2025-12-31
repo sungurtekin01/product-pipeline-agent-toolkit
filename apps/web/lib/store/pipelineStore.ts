@@ -11,6 +11,20 @@ export interface PipelineNodeState {
   result?: any;
 }
 
+export interface PersonaInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface PersonasResponse {
+  personas: {
+    strategist: PersonaInfo[];
+    designer: PersonaInfo[];
+    po: PersonaInfo[];
+  };
+}
+
 interface PipelineState {
   // Node states
   nodes: Record<string, PipelineNodeState>;
@@ -24,6 +38,10 @@ interface PipelineState {
   llmProvider: string;
   llmModel: string;
 
+  // Persona selection
+  personaMapping: Record<string, string>; // {"prd": "strategist", "design": "designer", "tickets": "po"}
+  availablePersonas: PersonasResponse | null;
+
   // Actions
   setNodeStatus: (nodeId: string, status: NodeStatus, progress?: number, message?: string) => void;
   setNodeProgress: (nodeId: string, progress: number) => void;
@@ -34,6 +52,8 @@ interface PipelineState {
   setVision: (vision: string) => void;
   setLLMProvider: (provider: string) => void;
   setLLMModel: (model: string) => void;
+  setPersonaForStep: (step: string, personaId: string) => void;
+  setAvailablePersonas: (personas: PersonasResponse) => void;
   resetNodes: () => void;
 }
 
@@ -63,6 +83,12 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   vision: '',
   llmProvider: 'gemini-3-flash-preview',
   llmModel: 'gemini-3-flash-preview',
+  personaMapping: {
+    prd: 'strategist',
+    design: 'designer',
+    tickets: 'po',
+  },
+  availablePersonas: null,
 
   // Actions
   setNodeStatus: (nodeId, status, progress = 0, message) =>
@@ -121,6 +147,16 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setLLMProvider: (provider) => set({ llmProvider: provider }),
 
   setLLMModel: (model) => set({ llmModel: model }),
+
+  setPersonaForStep: (step, personaId) =>
+    set((state) => ({
+      personaMapping: {
+        ...state.personaMapping,
+        [step]: personaId,
+      },
+    })),
+
+  setAvailablePersonas: (personas) => set({ availablePersonas: personas }),
 
   resetNodes: () => set({ nodes: initialNodes }),
 }));
