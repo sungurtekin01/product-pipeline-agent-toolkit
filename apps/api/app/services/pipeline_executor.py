@@ -36,12 +36,21 @@ class PipelineExecutor:
         vision: str,
         output_dir: str,
         llm_config: Optional[Dict[str, Any]] = None,
-        api_keys: Optional[Dict[str, str]] = None
+        api_keys: Optional[Dict[str, str]] = None,
+        persona_config: Optional[Dict[str, str]] = None
     ):
         self.vision = vision
         self.output_dir = Path(output_dir)
         self.llm_config = llm_config or {}
         self.api_keys = api_keys or {}
+        self.persona_config = persona_config or {}
+
+        # Default persona mappings
+        self.default_personas = {
+            "prd": "strategist",
+            "design": "designer",
+            "tickets": "po"
+        }
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,11 +122,33 @@ class PipelineExecutor:
             return {"client_registry": client_registry}
         return {}
 
+    def _get_persona_for_step(self, step: str) -> str:
+        """
+        Get persona for a given pipeline step
+
+        Args:
+            step: Pipeline step ("prd", "design", "tickets")
+
+        Returns:
+            Persona ID to use for this step
+
+        Priority:
+            1. User-configured persona (from persona_config)
+            2. Default persona for step
+        """
+        # Check if persona specified in config
+        if step in self.persona_config:
+            return self.persona_config[step]
+
+        # Fall back to default
+        return self.default_personas.get(step, "strategist")
+
     async def generate_prd(self, feedback: Optional[str] = None) -> Dict[str, Any]:
         """Generate Product Requirements Document using BAML"""
         try:
-            # Load strategist persona
-            strategist_prompt = self.persona_loader.get_prompt("strategist")
+            # Load strategist persona (use dynamic selection)
+            persona_id = self._get_persona_for_step("prd")
+            strategist_prompt = self.persona_loader.get_prompt(persona_id)
 
             # Get BAML options for provider selection
             baml_options = self._get_baml_options()
@@ -172,9 +203,11 @@ class PipelineExecutor:
             with open(prd_file) as f:
                 prd = json.load(f)
 
-            # Load personas
-            designer_prompt = self.persona_loader.get_prompt("designer")
-            strategist_prompt = self.persona_loader.get_prompt("strategist")
+            # Load personas (use dynamic selection)
+            designer_persona_id = self._get_persona_for_step("design")
+            strategist_persona_id = self._get_persona_for_step("prd")
+            designer_prompt = self.persona_loader.get_prompt(designer_persona_id)
+            strategist_prompt = self.persona_loader.get_prompt(strategist_persona_id)
 
             # Create LLM clients for Q&A session (Python orchestration)
             designer_llm = self._get_llm_client("designer")
@@ -281,10 +314,13 @@ class PipelineExecutor:
             with open(design_file) as f:
                 design = json.load(f)
 
-            # Load personas
-            po_prompt = self.persona_loader.get_prompt("po")
-            designer_prompt = self.persona_loader.get_prompt("designer")
-            strategist_prompt = self.persona_loader.get_prompt("strategist")
+            # Load personas (use dynamic selection)
+            po_persona_id = self._get_persona_for_step("tickets")
+            designer_persona_id = self._get_persona_for_step("design")
+            strategist_persona_id = self._get_persona_for_step("prd")
+            po_prompt = self.persona_loader.get_prompt(po_persona_id)
+            designer_prompt = self.persona_loader.get_prompt(designer_persona_id)
+            strategist_prompt = self.persona_loader.get_prompt(strategist_persona_id)
 
             # Create LLM clients for Q&A session (Python orchestration)
             po_llm = self._get_llm_client("po")

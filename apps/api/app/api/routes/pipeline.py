@@ -18,6 +18,7 @@ class PipelineConfig(BaseModel):
     output_dir: str = "docs/product"
     llm: Optional[Dict[str, Any]] = None
     api_keys: Optional[Dict[str, str]] = None  # API keys from frontend Settings UI
+    personas: Optional[Dict[str, str]] = None  # Persona mapping: {"prd": "strategist", "design": "designer", "tickets": "po"}
 
 
 class PipelineExecutionRequest(BaseModel):
@@ -105,6 +106,69 @@ async def list_tasks():
     return {"tasks": list(tasks.values())}
 
 
+@router.get("/personas")
+async def get_personas():
+    """
+    Get available personas grouped by role
+
+    Returns:
+        {
+            "personas": {
+                "strategist": [{"id": "strategist", "name": "...", "description": "..."}],
+                "designer": [{"id": "designer", ...}, {"id": "rn_designer", ...}],
+                "po": [{"id": "po", ...}]
+            }
+        }
+    """
+    from pathlib import Path
+    import sys
+    import toml
+
+    # Add engine to path
+    ENGINE_PATH = Path(__file__).parent.parent.parent.parent.parent.parent / "packages" / "engine"
+    sys.path.insert(0, str(ENGINE_PATH))
+
+    personas_dir = ENGINE_PATH / "personas"
+
+    # Read all persona TOML files
+    personas_by_role = {
+        "strategist": [],
+        "designer": [],
+        "po": []
+    }
+
+    # Map persona files to their roles
+    persona_role_mapping = {
+        "strategist": "strategist",
+        "designer": "designer",
+        "rn_designer": "designer",
+        "po": "po"
+    }
+
+    for persona_file in personas_dir.glob("*.toml"):
+        persona_id = persona_file.stem
+
+        # Determine role
+        role = persona_role_mapping.get(persona_id)
+        if not role:
+            continue
+
+        # Load persona data
+        try:
+            data = toml.load(persona_file)
+            persona_info = {
+                "id": persona_id,
+                "name": persona_id.replace("_", " ").title(),
+                "description": data.get("description", "")
+            }
+            personas_by_role[role].append(persona_info)
+        except Exception as e:
+            print(f"Error loading persona {persona_id}: {e}")
+            continue
+
+    return {"personas": personas_by_role}
+
+
 @router.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     """
@@ -182,7 +246,8 @@ async def execute_step_async(
             vision=config.vision,
             output_dir=config.output_dir,
             llm_config=config.llm,
-            api_keys=config.api_keys
+            api_keys=config.api_keys,
+            persona_config=config.personas
         )
 
         tasks[task_id].progress = 20
