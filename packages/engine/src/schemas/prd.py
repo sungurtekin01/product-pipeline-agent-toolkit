@@ -1,14 +1,14 @@
-"""Pydantic schema for Business Requirements Document (BRD)
+"""Pydantic schema for Product Requirements Document (PRD)
 
-This schema mirrors the BAML definition in baml_src/brd.baml
+This schema mirrors the BAML definition in baml_src/prd.baml
 """
 
 from pydantic import BaseModel, Field
 from typing import List
 
 
-class BRD(BaseModel):
-    """Business Requirements Document schema
+class PRD(BaseModel):
+    """Product Requirements Document schema
 
     Attributes:
         title: Clear, concise product name or identifier

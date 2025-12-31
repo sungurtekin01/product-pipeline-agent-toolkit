@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { X, Download, FileText, MessageSquare, Edit3 } from 'lucide-react';
+import { X, Download, FileText, MessageSquare, Edit3, Eye, Loader2 } from 'lucide-react';
 import { pipelineApi, Document } from '@/lib/api/pipelineApi';
 import FeedbackEditor from '@/components/feedback/FeedbackEditor';
+import { usePipelineStore } from '@/lib/store/pipelineStore';
+import { getAPIKeys } from '@/lib/utils/apiKeys';
 
 interface DocumentViewerProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ type TabType = 'prd' | 'design' | 'tickets';
 type ViewMode = 'document' | 'qa';
 
 export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps) {
+  const llmProvider = usePipelineStore((state) => state.llmProvider);
   const [activeTab, setActiveTab] = useState<TabType>('prd');
   const [viewMode, setViewMode] = useState<ViewMode>('document');
   const [document, setDocument] = useState<Document | null>(null);
@@ -24,6 +27,9 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
   const [error, setError] = useState<string | null>(null);
   const [availableDocs, setAvailableDocs] = useState<any>(null);
   const [showFeedbackEditor, setShowFeedbackEditor] = useState(false);
+  const [showVisualization, setShowVisualization] = useState(false);
+  const [visualizationHtml, setVisualizationHtml] = useState<string>('');
+  const [generatingVisualization, setGeneratingVisualization] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,6 +89,36 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleVisualize = async () => {
+    setGeneratingVisualization(true);
+    try {
+      // Parse provider and model from llmProvider (same logic as page.tsx)
+      let provider = 'gemini';
+      let model = llmProvider;
+
+      if (llmProvider.startsWith('claude')) {
+        provider = 'claude';
+      } else if (llmProvider.startsWith('gpt') || llmProvider.startsWith('o1')) {
+        provider = 'openai';
+      } else if (llmProvider.startsWith('gemini')) {
+        provider = 'gemini';
+      }
+
+      const result = await pipelineApi.visualizeDesign({
+        provider,
+        model,
+        api_keys: getAPIKeys(),
+      });
+      setVisualizationHtml(result.html);
+      setShowVisualization(true);
+    } catch (err) {
+      console.error('Failed to generate visualization:', err);
+      alert('Failed to generate visualization. Please try again.');
+    } finally {
+      setGeneratingVisualization(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -195,6 +231,20 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
             )}
           </div>
           <div className="flex gap-2">
+            {activeTab === 'design' && (
+              <button
+                onClick={handleVisualize}
+                disabled={!currentDoc || viewMode === 'qa' || generatingVisualization}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {generatingVisualization ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+                {generatingVisualization ? 'Generating...' : 'Visualize Design'}
+              </button>
+            )}
             <button
               onClick={() => setShowFeedbackEditor(true)}
               disabled={!currentDoc || viewMode === 'qa'}
@@ -222,6 +272,34 @@ export default function DocumentViewer({ isOpen, onClose }: DocumentViewerProps)
         step={activeTab}
         stepLabel={tabs.find(t => t.id === activeTab)?.fullLabel || ''}
       />
+
+      {/* Visualization Modal */}
+      {showVisualization && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[95vh] flex flex-col">
+            {/* Visualization Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Design Visualization</h2>
+              <button
+                onClick={() => setShowVisualization(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* HTML Content */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={visualizationHtml}
+                className="w-full h-full border-0"
+                sandbox="allow-same-origin"
+                title="Design Visualization"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

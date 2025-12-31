@@ -1,21 +1,21 @@
 """
-generate_brd.py - Business Requirements Document Generator
+generate_prd.py - Product Requirements Document Generator
 
 Part of Sait's Product Pipeline Toolkit
 
-This script generates a structured Business Requirements Document (BRD) from a product vision
+This script generates a structured Product Requirements Document (PRD) from a product vision
 using BAML functions and configurable LLM providers (Gemini, Claude, OpenAI).
 The output is type-safe and validated against BAML schemas.
 
 Usage:
     # Default (uses Gemini):
-    python scripts/generate_brd.py --vision "Your product vision" --output docs/product
+    python scripts/generate_prd.py --vision "Your product vision" --output docs/product
 
     # With specific provider:
-    python scripts/generate_brd.py --vision "..." --output docs/ --provider claude
+    python scripts/generate_prd.py --vision "..." --output docs/ --provider claude
 
-    # With feedback regeneration (auto-detected from docs/conversations/feedback/brd-feedback.md):
-    python scripts/generate_brd.py --output docs/
+    # With feedback regeneration (auto-detected from docs/conversations/feedback/prd-feedback.md):
+    python scripts/generate_prd.py --output docs/
 
 Requirements:
     - LLM API key in .env (GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY)
@@ -35,7 +35,7 @@ toolkit_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(toolkit_dir))
 
 from baml_client import b  # BAML client with functions
-from baml_client.types import BRD  # Your BAML-generated Pydantic class
+from baml_client.types import PRD  # Your BAML-generated Pydantic class
 from src.personas.loader import PersonaLoader
 from src.baml.client_registry import BAMLClientRegistry
 from src.pipeline.config import PipelineConfig
@@ -43,7 +43,7 @@ from src.io.markdown_writer import MarkdownWriter
 from src.io.markdown_parser import MarkdownParser
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description='Generate Business Requirements Document')
+parser = argparse.ArgumentParser(description='Generate Product Requirements Document')
 parser.add_argument('--project', default='.', help='Project directory path')
 parser.add_argument('--output', help='Output directory (overrides config)')
 parser.add_argument('--vision', help='Product vision (overrides config)')
@@ -86,27 +86,27 @@ persona_loader = PersonaLoader(personas_dir)
 strategist_prompt = persona_loader.get_prompt('strategist')
 
 # Check for feedback and incorporate if exists
-feedback_file = output_path / 'conversations' / 'feedback' / 'brd-feedback.md'
+feedback_file = output_path / 'conversations' / 'feedback' / 'prd-feedback.md'
 feedback = MarkdownParser.read_feedback(feedback_file)
 
-async def generate_brd_async():
-    """Async wrapper for BAML BRD generation"""
+async def generate_prd_async():
+    """Async wrapper for BAML PRD generation"""
     if feedback:
         print(f"\n📝 Found feedback at {feedback_file}")
-        print("🔄 Regenerating BRD with feedback incorporated...\n")
+        print("🔄 Regenerating PRD with feedback incorporated...\n")
 
         # Use BAML function for regeneration with feedback
-        return await b.GenerateBRDWithFeedback(
+        return await b.GeneratePRDWithFeedback(
             vision=product_vision,
             feedback=feedback,
             persona=strategist_prompt,
             baml_options=baml_options
         )
     else:
-        print("✓ No feedback found, generating initial BRD...\n")
+        print("✓ No feedback found, generating initial PRD...\n")
 
         # Use BAML function for initial generation
-        return await b.GenerateBRD(
+        return await b.GeneratePRD(
             vision=product_vision,
             persona=strategist_prompt,
             baml_options=baml_options
@@ -114,29 +114,29 @@ async def generate_brd_async():
 
 try:
     # Run async BAML function
-    brd = asyncio.run(generate_brd_async())
+    prd = asyncio.run(generate_prd_async())
 
 except Exception as e:
-    print(f"❌ Error generating BRD: {e}")
+    print(f"❌ Error generating PRD: {e}")
     exit(1)
 
-print("BRD Title:", brd.title)
-print("\nDescription:\n", brd.description)
+print("PRD Title:", prd.title)
+print("\nDescription:\n", prd.description)
 print("\nObjectives:")
-for i, obj in enumerate(brd.objectives, 1):
+for i, obj in enumerate(prd.objectives, 1):
     print(f"{i}. {obj}")
 
-# Save BRD as markdown (primary output format)
-brd_md_output = output_path / 'BRD.md'
-MarkdownWriter.write_brd(brd, brd_md_output)
-print(f"\n✓ BRD saved to {brd_md_output}")
+# Save PRD as markdown (primary output format)
+prd_md_output = output_path / 'PRD.md'
+MarkdownWriter.write_prd(prd, prd_md_output)
+print(f"\n✓ PRD saved to {prd_md_output}")
 
 # Also save as JSON for inter-script compatibility
-brd_json_output = output_path / 'brd.json'
-with open(brd_json_output, "w") as f:
+prd_json_output = output_path / 'prd.json'
+with open(prd_json_output, "w") as f:
     try:
-        f.write(brd.model_dump_json(indent=2))  # Pydantic v2+
+        f.write(prd.model_dump_json(indent=2))  # Pydantic v2+
     except AttributeError:
-        f.write(brd.json(indent=2))  # Pydantic v1 fallback
+        f.write(prd.json(indent=2))  # Pydantic v1 fallback
 
-print(f"✓ BRD (JSON) saved to {brd_json_output}")
+print(f"✓ PRD (JSON) saved to {prd_json_output}")

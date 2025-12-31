@@ -35,11 +35,13 @@ class PipelineExecutor:
         self,
         vision: str,
         output_dir: str,
-        llm_config: Optional[Dict[str, Any]] = None
+        llm_config: Optional[Dict[str, Any]] = None,
+        api_keys: Optional[Dict[str, str]] = None
     ):
         self.vision = vision
         self.output_dir = Path(output_dir)
         self.llm_config = llm_config or {}
+        self.api_keys = api_keys or {}
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -52,16 +54,6 @@ class PipelineExecutor:
         agent_config = self.llm_config.get(agent_name, {})
         provider = agent_config.get("provider", default_provider)
         model = agent_config.get("model")
-        api_key_env = agent_config.get("api_key_env")
-
-        # If no API key env specified, use provider default
-        if not api_key_env:
-            api_key_env_defaults = {
-                'gemini': 'GEMINI_API_KEY',
-                'claude': 'ANTHROPIC_API_KEY',
-                'openai': 'OPENAI_API_KEY'
-            }
-            api_key_env = api_key_env_defaults.get(provider, 'GEMINI_API_KEY')
 
         # If no model specified, use provider default
         if not model:
@@ -72,9 +64,34 @@ class PipelineExecutor:
             }
             model = model_defaults.get(provider, 'gemini-2.5-pro')
 
+        # Get API key from request or fall back to environment
+        api_key = None
+        api_key_env = None
+
+        if self.api_keys:
+            # Map provider to API key from request
+            provider_key_map = {
+                'gemini': 'gemini',
+                'claude': 'anthropic',
+                'openai': 'openai'
+            }
+            key_name = provider_key_map.get(provider)
+            if key_name and key_name in self.api_keys:
+                api_key = self.api_keys[key_name]
+
+        # If no API key from request, fall back to environment variable
+        if not api_key:
+            api_key_env_defaults = {
+                'gemini': 'GEMINI_API_KEY',
+                'claude': 'ANTHROPIC_API_KEY',
+                'openai': 'OPENAI_API_KEY'
+            }
+            api_key_env = agent_config.get("api_key_env") or api_key_env_defaults.get(provider, 'GEMINI_API_KEY')
+
         return LLMFactory.create(
             provider=provider,
             model=model,
+            api_key=api_key,
             api_key_env=api_key_env
         )
 

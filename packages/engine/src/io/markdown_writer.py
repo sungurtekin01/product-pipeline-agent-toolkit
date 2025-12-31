@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from typing import Union
-from src.schemas.brd import BRD
+from src.schemas.prd import PRD
 from src.schemas.design import DesignSpec
 from src.schemas.tickets import TicketSpec
 
@@ -10,20 +10,20 @@ from src.schemas.tickets import TicketSpec
 class MarkdownWriter:
     """Write schema objects to markdown files
 
-    This class provides static methods to convert BRD, DesignSpec, and TicketSpec
+    This class provides static methods to convert PRD, DesignSpec, and TicketSpec
     objects into well-formatted markdown documents.
 
     Example usage:
-        brd = BRD(title="My App", description="...", objectives=[...])
-        MarkdownWriter.write_brd(brd, Path('docs/BRD.md'))
+        prd = PRD(title="My App", description="...", objectives=[...])
+        MarkdownWriter.write_prd(prd, Path('docs/PRD.md'))
     """
 
     @staticmethod
-    def write_brd(brd: BRD, output_path: Path) -> None:
-        """Write Business Requirements Document to markdown
+    def write_prd(prd: PRD, output_path: Path) -> None:
+        """Write Product Requirements Document to markdown
 
         Args:
-            brd: BRD object to convert
+            prd: PRD object to convert
             output_path: Path to output markdown file
 
         Format:
@@ -37,12 +37,12 @@ class MarkdownWriter:
             2. {objective 2}
             ...
         """
-        markdown = f"# {brd.title}\n\n"
+        markdown = f"# {prd.title}\n\n"
         markdown += "## Description\n\n"
-        markdown += f"{brd.description}\n\n"
+        markdown += f"{prd.description}\n\n"
         markdown += "## Objectives\n\n"
 
-        for i, objective in enumerate(brd.objectives, 1):
+        for i, objective in enumerate(prd.objectives, 1):
             markdown += f"{i}. {objective}\n"
 
         # Ensure output directory exists

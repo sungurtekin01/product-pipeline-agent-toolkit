@@ -17,6 +17,7 @@ class PipelineConfig(BaseModel):
     vision: str
     output_dir: str = "docs/product"
     llm: Optional[Dict[str, Any]] = None
+    api_keys: Optional[Dict[str, str]] = None  # API keys from frontend Settings UI
 
 
 class PipelineExecutionRequest(BaseModel):
@@ -180,7 +181,8 @@ async def execute_step_async(
         executor = PipelineExecutor(
             vision=config.vision,
             output_dir=config.output_dir,
-            llm_config=config.llm
+            llm_config=config.llm,
+            api_keys=config.api_keys
         )
 
         tasks[task_id].progress = 20

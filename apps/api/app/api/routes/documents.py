@@ -4,6 +4,13 @@ from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel
+import sys
+
+# Add engine to Python path
+ENGINE_PATH = Path(__file__).parent.parent.parent.parent.parent / "packages" / "engine"
+sys.path.insert(0, str(ENGINE_PATH))
+
+from src.llm.factory import LLMFactory
 
 router = APIRouter()
 
@@ -11,6 +18,12 @@ router = APIRouter()
 class FeedbackRequest(BaseModel):
     step: str
     feedback: str
+
+
+class VisualizeRequest(BaseModel):
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
+    api_keys: Optional[dict] = None
 
 
 @router.get("/documents/list")
@@ -238,4 +251,139 @@ async def get_feedback(step: str, output_dir: str = "docs/product"):
         raise HTTPException(
             status_code=500,
             detail=f"Error reading feedback: {str(e)}"
+        )
+
+
+@router.post("/documents/design/visualize")
+async def visualize_design(request: VisualizeRequest, output_dir: str = "docs/product"):
+    """
+    Generate HTML visualization of design spec using LLM
+
+    Args:
+        request: Provider and model configuration
+        output_dir: Output directory path
+
+    Returns:
+        HTML content for visualization
+    """
+    # Read design spec
+    design_file = Path(output_dir) / 'design-spec.md'
+
+    if not design_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Design spec not found. Please generate design spec first."
+        )
+
+    try:
+        with open(design_file, 'r', encoding='utf-8') as f:
+            design_content = f.read()
+
+        # Create LLM client
+        provider = request.provider or "gemini"
+        model = request.model
+
+        # Set default models if not specified
+        if not model:
+            model_defaults = {
+                'gemini': 'gemini-2.0-flash-exp',
+                'claude': 'claude-sonnet-4-20250514',
+                'openai': 'gpt-4o'
+            }
+            model = model_defaults.get(provider, 'gemini-2.0-flash-exp')
+
+        # Get API key from request or fall back to environment
+        api_key = None
+        api_key_env = None
+
+        if request.api_keys:
+            # Map provider to API key from request
+            provider_key_map = {
+                'gemini': 'gemini',
+                'claude': 'anthropic',
+                'openai': 'openai'
+            }
+            key_name = provider_key_map.get(provider)
+            if key_name and key_name in request.api_keys:
+                api_key = request.api_keys[key_name]
+
+        # If no API key from request, fall back to environment variable
+        if not api_key:
+            api_key_env_defaults = {
+                'gemini': 'GEMINI_API_KEY',
+                'claude': 'ANTHROPIC_API_KEY',
+                'openai': 'OPENAI_API_KEY'
+            }
+            api_key_env = api_key_env_defaults.get(provider, 'GEMINI_API_KEY')
+
+        llm_client = LLMFactory.create(
+            provider=provider,
+            model=model,
+            api_key=api_key,
+            api_key_env=api_key_env
+        )
+
+        # Create prompt for HTML visualization
+        prompt = f"""You are an expert UI/UX designer creating a high-fidelity, interactive HTML mockup from a design specification.
+
+Design Specification:
+{design_content}
+
+Create a beautiful, production-ready HTML visualization that brings this design to life. Requirements:
+
+**Visual Design:**
+- Use lightweight inline CSS or Bootstrap 5 (via CDN) for styling
+- Keep it simple and performant - no heavy frameworks
+- Modern, clean design with smooth transitions
+- Professional color palette matching the product's theme/personality
+- Web-safe fonts or single Google Font if needed
+- Proper spacing, typography hierarchy, and visual balance
+- Simple SVG icons or Unicode symbols (avoid external icon libraries)
+
+**Layout & Structure:**
+- Create actual UI screens/views described in the spec (not just text sections)
+- Show key user flows and interactions visually
+- Include navigation, headers, footers, and realistic content
+- Use simple, semantic HTML with clean CSS
+- Make it responsive and mobile-friendly
+- Keep HTML/CSS minimal and readable
+
+**Interactivity:**
+- Add hover states and simple CSS transitions
+- Include working tabs or accordions with vanilla JavaScript if needed
+- Show different UI states where applicable
+- Keep JavaScript minimal and inline
+
+**Content:**
+- Use realistic placeholder content, not Lorem Ipsum
+- Show actual UI elements, buttons, forms, and components
+- Visualize key screens and flows from the spec
+- Keep it focused and concise
+
+Output a complete, self-contained HTML file with all CSS and JavaScript inline. Start with <!DOCTYPE html>.
+DO NOT include markdown code blocks or explanations - output only the raw HTML."""
+
+        # Generate HTML (synchronous call)
+        html_content = llm_client.generate(prompt)
+
+        # Clean up if LLM wrapped it in code blocks
+        html_content = html_content.strip()
+        if html_content.startswith('```html'):
+            html_content = html_content[7:]
+        if html_content.startswith('```'):
+            html_content = html_content[3:]
+        if html_content.endswith('```'):
+            html_content = html_content[:-3]
+        html_content = html_content.strip()
+
+        return {
+            "html": html_content,
+            "provider": provider,
+            "model": model
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating visualization: {str(e)}"
         )

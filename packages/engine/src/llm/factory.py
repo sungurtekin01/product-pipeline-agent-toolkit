@@ -40,13 +40,20 @@ class LLMFactory:
     }
 
     @classmethod
-    def create(cls, provider: str, model: str, api_key_env: str) -> BaseLLMClient:
+    def create(
+        cls,
+        provider: str,
+        model: str,
+        api_key_env: Optional[str] = None,
+        api_key: Optional[str] = None
+    ) -> BaseLLMClient:
         """Create LLM client from explicit parameters
 
         Args:
             provider: Provider name ('gemini', 'claude', 'openai')
             model: Model identifier (e.g., 'gemini-2.5-pro')
-            api_key_env: Environment variable name containing API key
+            api_key_env: Environment variable name containing API key (optional if api_key provided)
+            api_key: Direct API key value (optional if api_key_env provided)
 
         Returns:
             Configured LLM client instance
@@ -61,17 +68,24 @@ class LLMFactory:
                 f"Available providers: {', '.join(cls.PROVIDERS.keys())}"
             )
 
-        # Load API key from environment
-        api_key = os.getenv(api_key_env)
-        if not api_key:
-            raise ValueError(
-                f"API key not found in environment variable: {api_key_env}. "
-                f"Please ensure it is set in your .env file."
-            )
+        # Get API key from direct value or environment
+        if api_key:
+            # Use provided API key directly
+            final_api_key = api_key
+        elif api_key_env:
+            # Load API key from environment
+            final_api_key = os.getenv(api_key_env)
+            if not final_api_key:
+                raise ValueError(
+                    f"API key not found in environment variable: {api_key_env}. "
+                    f"Please ensure it is set in your .env file."
+                )
+        else:
+            raise ValueError("Either api_key or api_key_env must be provided")
 
         # Create and return client
         client_class = cls.PROVIDERS[provider]
-        return client_class(model=model, api_key=api_key)
+        return client_class(model=model, api_key=final_api_key)
 
     @classmethod
     def from_config(

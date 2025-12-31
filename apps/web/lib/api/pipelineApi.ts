@@ -5,6 +5,11 @@ export interface PipelineExecutionRequest {
     vision: string;
     output_dir: string;
     llm?: Record<string, any>;
+    api_keys?: {
+      gemini?: string;
+      anthropic?: string;
+      openai?: string;
+    };
   };
   step: 'prd' | 'design' | 'tickets';
   feedback?: string;
@@ -56,6 +61,22 @@ export interface Feedback {
 export interface FeedbackSaveRequest {
   step: string;
   feedback: string;
+}
+
+export interface VisualizeRequest {
+  provider?: string;
+  model?: string;
+  api_keys?: {
+    gemini?: string;
+    anthropic?: string;
+    openai?: string;
+  };
+}
+
+export interface VisualizeResponse {
+  html: string;
+  provider: string;
+  model: string;
 }
 
 export const pipelineApi = {
@@ -183,6 +204,25 @@ export const pipelineApi = {
 
     if (!response.ok) {
       throw new Error(`Failed to get feedback: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Generate HTML visualization of design spec
+   */
+  async visualizeDesign(request: VisualizeRequest = {}, outputDir: string = 'docs/product'): Promise<VisualizeResponse> {
+    const response = await fetch(`${API_BASE_URL}/documents/design/visualize?output_dir=${outputDir}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to visualize design: ${response.statusText}`);
     }
 
     return response.json();

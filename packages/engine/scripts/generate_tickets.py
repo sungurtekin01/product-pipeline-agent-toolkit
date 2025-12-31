@@ -18,7 +18,7 @@ Usage:
     python scripts/generate_tickets.py --output docs/
 
 Requirements:
-    - brd.json (from generate_brd.py)
+    - prd.json (from generate_prd.py)
     - design-spec.json (from generate_design.py)
     - LLM API key in .env (GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY)
     - BAML client generated from baml_src/ schemas
@@ -71,15 +71,15 @@ output_path.mkdir(parents=True, exist_ok=True)
 print(f"✓ Output directory: {output_path}")
 
 # Load BRD from project directory
-brd_file = output_path / 'brd.json'
-if not brd_file.exists():
-    print(f"❌ Error: brd.json not found at {brd_file}")
-    print("   Please run generate_brd.py first.")
+prd_file = output_path / 'prd.json'
+if not prd_file.exists():
+    print(f"❌ Error: prd.json not found at {prd_file}")
+    print("   Please run generate_prd.py first.")
     exit(1)
 
-with open(brd_file) as f:
-    brd = json.load(f)
-print(f"✓ Loaded BRD from {brd_file}")
+with open(prd_file) as f:
+    prd = json.load(f)
+print(f"✓ Loaded PRD from {prd_file}")
 
 # Load design spec for more detailed context
 design_file = output_path / 'design-spec.json'
@@ -163,14 +163,14 @@ strategist_agent = StrategistAgent(
 )
 
 orchestrator = ConversationOrchestrator(output_path)
-brd_text = json.dumps(brd, indent=2)
+prd_text = json.dumps(prd, indent=2)
 design_text = json.dumps(design_spec, indent=2)
 
 qa_conversation = orchestrator.run_qa_session(
     questioner=po_agent,
     respondents=[
         (designer_agent, design_text),
-        (strategist_agent, brd_text)
+        (strategist_agent, prd_text)
     ],
     session_name="tickets-qa",
     num_questions=5
@@ -190,7 +190,7 @@ async def generate_tickets_async():
 
         # Use BAML function for regeneration with feedback
         return await b.GenerateTicketsWithFeedback(
-            brd=brd_text,
+            prd=prd_text,
             design=design_text,
             qa_conversation=qa_conversation,
             feedback=feedback,
@@ -202,7 +202,7 @@ async def generate_tickets_async():
 
         # Use BAML function for initial generation
         return await b.GenerateTickets(
-            brd=brd_text,
+            prd=prd_text,
             design=design_text,
             qa_conversation=qa_conversation,
             persona=po_prompt,

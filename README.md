@@ -1,6 +1,6 @@
 # Product Pipeline Toolkit - Monorepo
 
-AI-powered product development pipeline with visual canvas UI. Transform your product vision into complete documentation (BRD → Design Spec → Development Tickets) using multi-agent LLM collaboration.
+AI-powered product development pipeline with visual canvas UI. Transform your product vision into complete documentation (PRD → Design Spec → Development Tickets) using multi-agent LLM collaboration.
 
 ## 🎯 What is This?
 
@@ -23,7 +23,7 @@ product-pipeline-toolkit/
 ### Visual Pipeline Flow
 
 ```
-Vision → BRD → Design Spec → Dev Tickets
+Vision → PRD → Design Spec → Dev Tickets
          ↓        ↓             ↓
       Strategist  Designer      PO
          ↓        ↓             ↓
@@ -149,7 +149,7 @@ cd ~/my-product
 # Edit product.config.json with your vision
 
 # Run pipeline
-python ~/product-pipeline-toolkit/packages/engine/scripts/generate_brd.py --project .
+python ~/product-pipeline-toolkit/packages/engine/scripts/generate_prd.py --project .
 python ~/product-pipeline-toolkit/packages/engine/scripts/generate_design.py --project .
 python ~/product-pipeline-toolkit/packages/engine/scripts/generate_tickets.py --project .
 ```
@@ -204,7 +204,7 @@ Core pipeline engine with multi-provider LLM support.
 - `src/pipeline/` - Configuration management
 - `src/schemas/` - Pydantic schemas (mirror BAML)
 - `baml_src/` - BAML schema definitions
-- `scripts/` - Generation scripts (BRD, Design, Tickets)
+- `scripts/` - Generation scripts (PRD, Design, Tickets)
 
 ## 🎮 Using the UI
 
@@ -235,7 +235,7 @@ Select your preferred LLM provider (Gemini, Claude, or GPT).
 ### 4. Run Pipeline
 
 Click "Run Pipeline" to execute all steps sequentially:
-1. BRD generation
+1. PRD generation
 2. Design Spec generation (with Q&A)
 3. Development Tickets (with Q&A)
 
@@ -250,7 +250,7 @@ Watch the pipeline canvas nodes update in real-time via WebSocket as each step e
 ### 6. View Generated Documents
 
 Click "View Documents" to open the document viewer:
-- Switch between BRD, Design Spec, and Tickets tabs
+- Switch between PRD, Design Spec, and Tickets tabs
 - View Q&A conversations for Design and Tickets
 - Download any document as markdown
 - See which documents are available

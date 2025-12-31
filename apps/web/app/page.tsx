@@ -7,7 +7,7 @@ import SettingsModal from '@/components/settings/SettingsModal';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { pipelineApi } from '@/lib/api/pipelineApi';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { hasAPIKeys } from '@/lib/utils/apiKeys';
+import { hasAPIKeys, getAPIKeys } from '@/lib/utils/apiKeys';
 import { Settings } from 'lucide-react';
 
 export default function Home() {
@@ -86,6 +86,7 @@ export default function Home() {
           designer: { provider, model },
           po: { provider, model },
         },
+        api_keys: getAPIKeys(),
       };
 
       // Execute the specified step
@@ -139,6 +140,7 @@ export default function Home() {
           designer: { provider, model },
           po: { provider, model },
         },
+        api_keys: getAPIKeys(),
       };
 
       // Helper function to wait for task completion
@@ -222,7 +224,7 @@ export default function Home() {
                 Product Vision
               </h2>
               <textarea
-                className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400"
                 placeholder="Enter your product vision..."
                 value={vision}
                 onChange={(e) => setVision(e.target.value)}

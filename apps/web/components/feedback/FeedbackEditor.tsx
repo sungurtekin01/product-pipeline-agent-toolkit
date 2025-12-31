@@ -137,7 +137,7 @@ export default function FeedbackEditor({ isOpen, onClose, step, stepLabel }: Fee
                   Your Feedback
                 </label>
                 <textarea
-                  className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm text-gray-900 placeholder:text-gray-400"
                   placeholder={`Enter your feedback for the ${stepLabel} here. Be specific about what needs improvement or what's missing.\n\nFor example:\n- Add more details about the authentication flow\n- Include error handling requirements\n- Clarify the scope of the MVP\n\nWhen you save this feedback and re-run the pipeline, the AI will incorporate your suggestions.`}
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
@@ -188,10 +188,10 @@ export default function FeedbackEditor({ isOpen, onClose, step, stepLabel }: Fee
             <button
               onClick={handleSave}
               disabled={saving || !feedback.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
             >
               <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Feedback'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

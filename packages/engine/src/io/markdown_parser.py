@@ -11,7 +11,7 @@ class MarkdownParser:
     files from markdown format.
 
     Example usage:
-        feedback = MarkdownParser.read_feedback(Path('docs/feedback/brd-feedback.md'))
+        feedback = MarkdownParser.read_feedback(Path('docs/feedback/prd-feedback.md'))
         if feedback:
             print(f"Incorporating feedback: {feedback}")
     """
@@ -27,7 +27,7 @@ class MarkdownParser:
             Feedback content as string, or None if file doesn't exist
 
         Example feedback file format:
-            # Feedback on BRD
+            # Feedback on PRD
 
             ## Requested Changes
             - Add more detail about user authentication
