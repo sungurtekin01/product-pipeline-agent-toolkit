@@ -18,7 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import PipelineNode, { PipelineNodeData } from './PipelineNode';
-import { usePipelineStore } from '@/lib/store/pipelineStore';
+import { usePipelineStore, PersonasResponse, PersonaInfo } from '@/lib/store/pipelineStore';
 
 const nodeDefinitions = [
   {
@@ -66,10 +66,39 @@ const initialEdges: Edge[] = [
 
 interface PipelineCanvasProps {
   onRunStep?: (step: 'prd' | 'design' | 'tickets') => void;
+  availablePersonas?: PersonasResponse | null;
+  personaMapping?: Record<string, string>;
+  onPersonaSelect?: (step: string, personaId: string) => void;
 }
 
-export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
+export default function PipelineCanvas({
+  onRunStep,
+  availablePersonas,
+  personaMapping,
+  onPersonaSelect,
+}: PipelineCanvasProps) {
   const pipelineNodes = usePipelineStore((state) => state.nodes);
+
+  // Helper to get personas for a step based on its role
+  const getPersonasForStep = (stepId: string): PersonaInfo[] => {
+    if (!availablePersonas) return [];
+
+    const roleMapping: Record<string, keyof PersonasResponse['personas']> = {
+      prd: 'strategist',
+      design: 'designer',
+      tickets: 'po',
+    };
+
+    const role = roleMapping[stepId];
+    return role ? availablePersonas.personas[role] : [];
+  };
+
+  // Helper to get current persona for a step
+  const getCurrentPersona = (stepId: string): PersonaInfo | undefined => {
+    const personas = getPersonasForStep(stepId);
+    const personaId = personaMapping?.[stepId];
+    return personas.find((p) => p.id === personaId);
+  };
 
   // Build React Flow nodes from pipeline store
   const initialNodes: Node<PipelineNodeData>[] = nodeDefinitions.map((def) => ({
@@ -83,13 +112,16 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
       progress: pipelineNodes[def.id]?.progress || 0,
       message: pipelineNodes[def.id]?.message,
       onRun: onRunStep ? () => onRunStep(def.id as 'prd' | 'design' | 'tickets') : undefined,
+      availablePersonas: getPersonasForStep(def.id),
+      currentPersona: getCurrentPersona(def.id),
+      onPersonaSelect: onPersonaSelect ? (personaId) => onPersonaSelect(def.id, personaId) : undefined,
     },
   }));
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when pipeline store changes
+  // Update nodes when pipeline store or persona selection changes
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -103,13 +135,16 @@ export default function PipelineCanvas({ onRunStep }: PipelineCanvasProps) {
               progress: storeNode.progress,
               message: storeNode.message,
               onRun: onRunStep ? () => onRunStep(node.id as 'prd' | 'design' | 'tickets') : undefined,
+              availablePersonas: getPersonasForStep(node.id),
+              currentPersona: getCurrentPersona(node.id),
+              onPersonaSelect: onPersonaSelect ? (personaId) => onPersonaSelect(node.id, personaId) : undefined,
             },
           };
         }
         return node;
       })
     );
-  }, [pipelineNodes, setNodes, onRunStep]);
+  }, [pipelineNodes, setNodes, onRunStep, availablePersonas, personaMapping, onPersonaSelect]);
 
   const nodeTypes = useMemo(
     () => ({

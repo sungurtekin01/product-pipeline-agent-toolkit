@@ -11,12 +11,40 @@ import { hasAPIKeys, getAPIKeys } from '@/lib/utils/apiKeys';
 import { Settings } from 'lucide-react';
 
 export default function Home() {
-  const { vision, setVision, llmProvider, setLLMProvider, isExecuting, setIsExecuting, setNodeStatus, setCurrentTaskId, currentTaskId, nodes } = usePipelineStore();
+  const {
+    vision,
+    setVision,
+    llmProvider,
+    setLLMProvider,
+    isExecuting,
+    setIsExecuting,
+    setNodeStatus,
+    setCurrentTaskId,
+    currentTaskId,
+    nodes,
+    personaMapping,
+    availablePersonas,
+    setPersonaForStep,
+    setAvailablePersonas,
+  } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
   const [showDocuments, setShowDocuments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
   const [logs, setLogs] = useState<Array<{ step: string; message: string; timestamp: Date }>>([]);
+
+  // Load available personas on mount
+  useEffect(() => {
+    const loadPersonas = async () => {
+      try {
+        const personas = await pipelineApi.getPersonas();
+        setAvailablePersonas(personas);
+      } catch (err) {
+        console.error('Failed to load personas:', err);
+      }
+    };
+    loadPersonas();
+  }, [setAvailablePersonas]);
 
   useEffect(() => {
     setHasKeys(hasAPIKeys());
@@ -87,6 +115,7 @@ export default function Home() {
           po: { provider, model },
         },
         api_keys: getAPIKeys(),
+        personas: personaMapping, // Include persona selection
       };
 
       // Execute the specified step
@@ -141,6 +170,7 @@ export default function Home() {
           po: { provider, model },
         },
         api_keys: getAPIKeys(),
+        personas: personaMapping, // Include persona selection
       };
 
       // Helper function to wait for task completion
@@ -187,6 +217,11 @@ export default function Home() {
       setError(err instanceof Error ? err.message : 'Failed to run full pipeline');
       setIsExecuting(false);
     }
+  };
+
+  // Handle persona selection
+  const handlePersonaSelect = (step: string, personaId: string) => {
+    setPersonaForStep(step, personaId);
   };
 
   // Run individual step (for node buttons)
@@ -346,7 +381,12 @@ export default function Home() {
 
         {/* Pipeline Canvas */}
         <div className="flex-1">
-          <PipelineCanvas onRunStep={handleRunStep} />
+          <PipelineCanvas
+            onRunStep={handleRunStep}
+            availablePersonas={availablePersonas}
+            personaMapping={personaMapping}
+            onPersonaSelect={handlePersonaSelect}
+          />
         </div>
       </main>
 
