@@ -324,43 +324,33 @@ async def visualize_design(request: VisualizeRequest, output_dir: str = "docs/pr
         )
 
         # Create prompt for HTML visualization
-        prompt = f"""You are an expert UI/UX designer creating a high-fidelity, interactive HTML mockup from a design specification.
+        prompt = f"""You are a frontend developer creating an interactive HTML mockup from a design specification.
 
-Design Specification:
+INPUT: A design specification document containing screens, components, and UI requirements.
+
+OUTPUT: A single, self-contained HTML file with:
+- Embedded CSS (no external stylesheets)
+- Embedded JavaScript for interactivity
+- All screens from the spec as separate divs
+- Working navigation between screens
+- Interactive components (buttons, forms, toggles, etc.)
+- Responsive layout (mobile-first, max-width container)
+- Visual polish (transitions, hover states, animations where specified)
+
+REQUIREMENTS:
+1. Parse the design spec and identify all screens/views
+2. Implement each component described with appropriate HTML/CSS
+3. Add tab navigation or buttons to switch between screens
+4. Make all interactive elements functional (clicks, toggles, form inputs)
+5. Apply the color scheme and visual style described in the spec
+6. Add smooth transitions and animations for better UX
+7. Ensure accessibility (ARIA labels, semantic HTML, keyboard navigation)
+8. Include inline comments mapping components back to the spec
+
+DESIGN SPECIFICATION:
 {design_content}
 
-Create a beautiful, production-ready HTML visualization that brings this design to life. Requirements:
-
-**Visual Design:**
-- Use lightweight inline CSS or Bootstrap 5 (via CDN) for styling
-- Keep it simple and performant - no heavy frameworks
-- Modern, clean design with smooth transitions
-- Professional color palette matching the product's theme/personality
-- Web-safe fonts or single Google Font if needed
-- Proper spacing, typography hierarchy, and visual balance
-- Simple SVG icons or Unicode symbols (avoid external icon libraries)
-
-**Layout & Structure:**
-- Create actual UI screens/views described in the spec (not just text sections)
-- Show key user flows and interactions visually
-- Include navigation, headers, footers, and realistic content
-- Use simple, semantic HTML with clean CSS
-- Make it responsive and mobile-friendly
-- Keep HTML/CSS minimal and readable
-
-**Interactivity:**
-- Add hover states and simple CSS transitions
-- Include working tabs or accordions with vanilla JavaScript if needed
-- Show different UI states where applicable
-- Keep JavaScript minimal and inline
-
-**Content:**
-- Use realistic placeholder content, not Lorem Ipsum
-- Show actual UI elements, buttons, forms, and components
-- Visualize key screens and flows from the spec
-- Keep it focused and concise
-
-Output a complete, self-contained HTML file with all CSS and JavaScript inline. Start with <!DOCTYPE html>.
+Generate a complete HTML file ready to download and view in a browser. Start with <!DOCTYPE html>.
 DO NOT include markdown code blocks or explanations - output only the raw HTML."""
 
         # Generate HTML (synchronous call)

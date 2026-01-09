@@ -265,61 +265,96 @@ async def execute_step_async(
                 "type": "progress",
                 "status": "running",
                 "progress": 30,
-                "message": "Generating Product Requirements Document...",
+                "message": "🤔 Product Strategist is analyzing vision...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 50,
+                "message": "📝 Generating Product Requirements Document...",
                 "result": {"step": step}
             })
             result = await executor.generate_prd(feedback)
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
-                "progress": 80,
-                "message": "PRD generated successfully",
+                "progress": 90,
+                "message": "✅ PRD generated successfully",
                 "result": {"step": step}
             })
         elif step == "design":
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
-                "progress": 30,
-                "message": "Running Q&A with Strategist...",
+                "progress": 25,
+                "message": "🤔 UX Designer is analyzing PRD...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 35,
+                "message": "💬 Running Q&A session with Product Strategist...",
                 "result": {"step": step}
             })
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 50,
-                "message": "Analyzing PRD and generating design questions...",
+                "message": "📝 Generating design questions and gathering insights...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 65,
+                "message": "🎨 Creating design specification with Q&A context...",
                 "result": {"step": step}
             })
             result = await executor.generate_design(feedback)
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
-                "progress": 80,
-                "message": "Design specification generated successfully",
+                "progress": 90,
+                "message": "✅ Design specification generated successfully",
                 "result": {"step": step}
             })
         elif step == "tickets":
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
-                "progress": 30,
-                "message": "Running Q&A with Designer and Strategist...",
+                "progress": 25,
+                "message": "🤔 Product Owner is analyzing Design Spec and PRD...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 35,
+                "message": "💬 Running Q&A with Designer and Strategist...",
                 "result": {"step": step}
             })
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
                 "progress": 50,
-                "message": "Analyzing design and PRD for ticket generation...",
+                "message": "📋 Gathering clarifications and technical details...",
+                "result": {"step": step}
+            })
+            await manager.send_message(task_id, {
+                "type": "progress",
+                "status": "running",
+                "progress": 70,
+                "message": "🎫 Creating development tickets with Q&A insights...",
                 "result": {"step": step}
             })
             result = await executor.generate_tickets(feedback)
             await manager.send_message(task_id, {
                 "type": "progress",
                 "status": "running",
-                "progress": 80,
-                "message": "Development tickets generated successfully",
+                "progress": 90,
+                "message": "✅ Development tickets generated successfully",
                 "result": {"step": step}
             })
         else:

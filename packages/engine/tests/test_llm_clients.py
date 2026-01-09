@@ -17,12 +17,12 @@ class TestGeminiClient:
     @patch('src.llm.gemini_client.genai')
     def test_generate(self, mock_genai):
         """Test Gemini client generation"""
-        # Setup mock
-        mock_model = Mock()
+        # Setup mock for new google-genai SDK
+        mock_client = Mock()
         mock_response = Mock()
         mock_response.text = "Generated response"
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
 
         # Create client and generate
         client = GeminiClient(model='gemini-2.5-pro', api_key='test_key')
@@ -30,7 +30,7 @@ class TestGeminiClient:
 
         # Assertions
         assert result == "Generated response"
-        mock_model.generate_content.assert_called_once()
+        mock_client.models.generate_content.assert_called_once()
 
     def test_clean_response(self):
         """Test response cleaning for code fences"""

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, Eye, EyeOff, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { X, Save, Eye, EyeOff, AlertCircle, CheckCircle2, ExternalLink, Trash2 } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -61,6 +61,18 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }, 1500);
     } catch (error) {
       console.error('Failed to save API keys:', error);
+    }
+  };
+
+  const handleClear = () => {
+    if (confirm('Are you sure you want to clear all API keys? This cannot be undone.')) {
+      try {
+        localStorage.removeItem('api_keys');
+        setApiKeys({ gemini: '', anthropic: '', openai: '' });
+        setSaved(false);
+      } catch (error) {
+        console.error('Failed to clear API keys:', error);
+      }
     }
   };
 
@@ -243,21 +255,30 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={handleClear}
+            className="flex items-center gap-2 px-4 py-2 text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
           >
-            Cancel
+            <Trash2 className="w-4 h-4" />
+            Clear All Keys
           </button>
-          <button
-            onClick={handleSave}
-            disabled={!hasAnyKey}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <Save className="w-4 h-4" />
-            Save Settings
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!hasAnyKey}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              Save Settings
+            </button>
+          </div>
         </div>
       </div>
     </div>

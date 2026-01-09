@@ -13,13 +13,24 @@ const STORAGE_KEY = 'api_keys';
 
 /**
  * Get API keys from localStorage
+ * Filters out empty/whitespace-only values
  */
 export function getAPIKeys(): APIKeys {
   if (typeof window === 'undefined') return {};
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
+    if (!stored) return {};
+
+    const keys = JSON.parse(stored);
+
+    // Filter out empty values to avoid overriding .env file
+    const filtered: APIKeys = {};
+    if (keys.gemini?.trim()) filtered.gemini = keys.gemini;
+    if (keys.anthropic?.trim()) filtered.anthropic = keys.anthropic;
+    if (keys.openai?.trim()) filtered.openai = keys.openai;
+
+    return filtered;
   } catch (error) {
     console.error('Failed to load API keys:', error);
     return {};

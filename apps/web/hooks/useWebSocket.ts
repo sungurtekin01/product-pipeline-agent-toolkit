@@ -30,11 +30,12 @@ export function useWebSocket({
   const connect = useCallback(() => {
     if (!taskId) return;
 
-    const wsUrl = `ws://127.0.0.1:8000/api/pipeline/ws/${taskId}`;
+    const apiHost = process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, '').replace(/\/api$/, '') || '127.0.0.1:8000';
+    const wsProtocol = process.env.NEXT_PUBLIC_API_URL?.startsWith('https') ? 'wss' : 'ws';
+    const wsUrl = `${wsProtocol}://${apiHost}/api/pipeline/ws/${taskId}`;
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onopen = () => {
-      console.log(`WebSocket connected for task: ${taskId}`);
       onOpen?.();
     };
 
@@ -48,18 +49,15 @@ export function useWebSocket({
     };
 
     ws.current.onclose = () => {
-      console.log('WebSocket closed');
       onClose?.();
 
       // Attempt to reconnect after 3 seconds
       reconnectTimeout.current = setTimeout(() => {
-        console.log('Attempting to reconnect...');
         connect();
       }, 3000);
     };
 
     ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
       onError?.(error);
     };
   }, [taskId, onMessage, onOpen, onClose, onError]);

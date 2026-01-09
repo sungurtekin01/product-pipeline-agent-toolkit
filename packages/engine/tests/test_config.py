@@ -104,7 +104,7 @@ class TestPipelineConfig:
     def test_get_output_dir_from_config(self):
         """Test getting output directory from config"""
         with TemporaryDirectory() as tmpdir:
-            project_path = Path(tmpdir)
+            project_path = Path(tmpdir).resolve()
             config_file = project_path / 'product.config.json'
 
             config_data = {'output_dir': 'docs/product'}
@@ -115,22 +115,22 @@ class TestPipelineConfig:
             output_dir = config.get_output_dir()
 
             expected = project_path / 'docs/product'
-            assert output_dir == expected
+            assert output_dir.resolve() == expected.resolve()
 
     def test_get_output_dir_default(self):
         """Test default output directory"""
         with TemporaryDirectory() as tmpdir:
-            project_path = Path(tmpdir)
+            project_path = Path(tmpdir).resolve()
 
             config = PipelineConfig(project_path)
             output_dir = config.get_output_dir()
 
-            assert output_dir == project_path / '.'
+            assert output_dir.resolve() == (project_path / '.').resolve()
 
     def test_get_output_dir_cli_override(self):
         """Test CLI override for output directory"""
         with TemporaryDirectory() as tmpdir:
-            project_path = Path(tmpdir)
+            project_path = Path(tmpdir).resolve()
             config_file = project_path / 'product.config.json'
 
             config_data = {'output_dir': 'docs/product'}
@@ -141,7 +141,7 @@ class TestPipelineConfig:
             output_dir = config.get_output_dir(cli_override='custom/output')
 
             expected = project_path / 'custom/output'
-            assert output_dir == expected
+            assert output_dir.resolve() == expected.resolve()
 
     def test_get_llm_config_existing_agent(self):
         """Test getting LLM config for existing agent"""

@@ -210,19 +210,15 @@ Core pipeline engine with multi-provider LLM support.
 
 ### 1. Configure API Keys (First Time)
 
-**⚠️ Note:** Settings UI is under development and not functional yet. For now, configure API keys in `.env` files:
+Click the **Settings** button in the top-right corner to configure your API keys. Keys are stored securely in your browser's local storage and sent directly to the LLM providers - never stored on any server.
 
-**For Docker:**
-- Create `.env` files will be supported in next version
-- Currently using default/demo mode
-
-**For Manual Setup:**
-- Create `.env` in `packages/engine` with:
-  ```bash
-  GEMINI_API_KEY=your_key_here
-  ANTHROPIC_API_KEY=your_key_here
-  OPENAI_API_KEY=your_key_here
-  ```
+**For CLI/Engine-only usage:**
+Create `.env` in `packages/engine` with:
+```bash
+GEMINI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+```
 
 ### 2. Enter Product Vision
 
@@ -392,14 +388,12 @@ source .venv/bin/activate
 - [x] WebSocket support for real-time progress updates
 - [x] Document viewer with markdown rendering
 - [x] Inline feedback editor in UI
-- [⏳] Settings UI for API key management (UI built, backend integration pending)
+- [x] Settings UI for API key management
 - [ ] Project management (save/load multiple projects)
 - [ ] Authentication and user management
 - [ ] Export to Linear/Jira/GitHub Issues
 - [ ] Collaborative editing
 - [ ] Version history
-
-**Note:** Settings UI is currently non-functional. API keys must be configured in `.env` files until backend integration is completed.
 
 ## 📄 License
 

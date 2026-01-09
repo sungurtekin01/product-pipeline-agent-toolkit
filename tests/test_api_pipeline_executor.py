@@ -3,14 +3,19 @@ Test API Pipeline Executor with BAML Integration
 
 This test verifies that the API service methods (generate_brd, generate_design, generate_tickets)
 correctly use BAML functions for document generation.
+
+NOTE: This is an integration test that requires actual API keys.
+Run with: pytest tests/test_api_pipeline_executor.py -v
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 import tempfile
 import shutil
 
+import pytest
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -20,7 +25,16 @@ sys.path.insert(0, str(API_PATH))
 
 from app.services.pipeline_executor import PipelineExecutor
 
+# Skip if no API keys are available (integration test)
+HAS_API_KEY = any([
+    os.getenv('GEMINI_API_KEY'),
+    os.getenv('ANTHROPIC_API_KEY'),
+    os.getenv('OPENAI_API_KEY')
+])
 
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not HAS_API_KEY, reason="No API keys available - skipping integration test")
 async def test_pipeline_executor():
     """Test full pipeline with BAML functions"""
 

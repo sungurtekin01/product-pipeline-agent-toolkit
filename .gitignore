@@ -29,10 +29,10 @@ test-output/
 # Plans and AI guidance
 plans/
 .claude/
-CLAUDE.md
+CLAUDE-*.md
 GEMINI.md
+GEMINI-*.md
 BAML-MIGRATION-STATUS.md
-CLAUDE-CONVERSATION-ANALYSIS.md
 
 # Node.js
 node_modules/

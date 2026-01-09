@@ -32,6 +32,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
   const [logs, setLogs] = useState<Array<{ step: string; message: string; timestamp: Date }>>([]);
+  const [visionExpanded, setVisionExpanded] = useState(false);
 
   // Load available personas on mount
   useEffect(() => {
@@ -54,10 +55,12 @@ export default function Home() {
   useWebSocket({
     taskId: currentTaskId || '',
     onMessage: (message) => {
-      console.log('WebSocket message:', message);
+      // Parse the step from the message
+      const step = message.result?.step;
 
-      // Parse the step from the message or use a default
-      const step = message.result?.step || 'prd'; // Fallback to prd
+      if (!step) {
+        return; // Skip messages without a step
+      }
 
       // Add log entry
       const logMessage = message.message || message.error || 'Processing...';
@@ -239,148 +242,159 @@ export default function Home() {
             Vision → PRD → Design → Tickets
           </p>
         </div>
-        <button
-          onClick={() => setShowSettings(true)}
-          className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          Settings
-        </button>
+        <div className="flex items-center gap-3">
+          {/* LLM Provider Selector - Compact */}
+          <select
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={llmProvider}
+            onChange={(e) => setLLMProvider(e.target.value)}
+            disabled={isExecuting}
+          >
+            <optgroup label="Gemini (Google)">
+              <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+            </optgroup>
+            <optgroup label="Claude (Anthropic)">
+              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+              <option value="claude-opus-4-20250514">Claude Opus 4</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+            </optgroup>
+          </select>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Settings
+          </button>
+        </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex">
-        {/* Sidebar */}
-        <aside className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
-          <div className="space-y-6">
-            {/* Vision Editor */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                Product Vision
-              </h2>
-              <textarea
-                className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400"
-                placeholder="Enter your product vision..."
-                value={vision}
-                onChange={(e) => setVision(e.target.value)}
-                disabled={isExecuting}
-              />
-            </div>
-
-            {/* LLM Config */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                LLM Configuration
-              </h2>
-              <div className="space-y-3">
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-lg text-gray-900"
-                  value={llmProvider}
-                  onChange={(e) => setLLMProvider(e.target.value)}
-                  disabled={isExecuting}
-                >
-                  <optgroup label="Gemini (Google)">
-                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Default)</option>
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
-                    <option value="gemini-2.0-flash-thinking-exp-01-21">Gemini 2.0 Flash Thinking</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                  </optgroup>
-                  <optgroup label="Claude (Anthropic)">
-                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                    <option value="claude-opus-4-20250514">Claude Opus 4</option>
-                    <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
-                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                  </optgroup>
-                  <optgroup label="OpenAI">
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-4o-mini">GPT-4o Mini</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="o1">O1</option>
-                    <option value="o1-mini">O1 Mini</option>
-                  </optgroup>
-                </select>
+      {/* Vision Input - Collapsible */}
+      <div
+        className={`bg-white border-b border-gray-200 transition-all duration-300 ease-in-out ${
+          visionExpanded ? 'min-h-[60vh] max-h-[70vh]' : 'h-auto'
+        }`}
+      >
+        {!visionExpanded ? (
+          // Collapsed State
+          <div className="px-6 py-4">
+            <div
+              onClick={() => !isExecuting && setVisionExpanded(true)}
+              className={`cursor-pointer ${isExecuting ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-700">Product Vision</h2>
+                <span className="text-xs text-gray-500">Click to expand</span>
+              </div>
+              <div className="p-3 border-2 border-gray-300 rounded-lg hover:border-blue-400 transition-colors bg-gray-50">
+                <p className="text-gray-600 text-sm truncate">
+                  {vision || "Enter your product vision..."}
+                </p>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="space-y-2">
-              {!hasKeys && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
-                  <p className="text-xs text-amber-800">
-                    ⚠️ Configure API keys in Settings to run the pipeline
-                  </p>
-                </div>
-              )}
-              <button
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                onClick={handleRunAll}
-                disabled={isExecuting || !hasKeys}
-              >
-                {isExecuting ? 'Running...' : 'Run All Steps'}
-              </button>
-              <div className="text-xs text-center text-gray-500 py-1">
-                or click individual nodes to run steps separately
-              </div>
-              <button
-                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-                onClick={() => setShowDocuments(true)}
-              >
-                View Documents
-              </button>
-            </div>
-
-            {/* Error Display */}
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-
-            {/* Live Logs */}
-            {logs.length > 0 && (
+          </div>
+        ) : (
+          // Expanded State - Full height
+          <div className="h-full flex flex-col px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                  Live Logs
-                </h2>
-                <div className="bg-gray-900 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs">
-                  {logs.map((log, idx) => (
-                    <div key={idx} className="mb-1">
-                      <span className="text-blue-400">[{log.step}]</span>{' '}
-                      <span className="text-gray-300">{log.message}</span>
-                    </div>
-                  ))}
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Product Vision</h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Describe what you want to build and why it matters
+                </p>
+              </div>
+              <button
+                onClick={() => setVisionExpanded(false)}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+              >
+                Done
+              </button>
+            </div>
+            <textarea
+              autoFocus
+              className="flex-1 w-full p-4 border-2 border-blue-400 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 text-base leading-relaxed overflow-y-auto"
+              style={{ minHeight: '400px' }}
+              placeholder="Example: A mobile app that helps remote teams stay connected through async video messages..."
+              value={vision}
+              onChange={(e) => setVision(e.target.value)}
+              disabled={isExecuting}
+            />
+            <div className="flex items-center justify-between mt-3 flex-shrink-0">
+              <p className="text-xs text-gray-500">
+                {vision.length} characters
+              </p>
+              <p className="text-xs text-gray-500">
+                Tip: Be specific about the problem, users, and value proposition
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content - Canvas */}
+      <main className="flex-1 flex overflow-hidden relative">
+        {/* Canvas Area */}
+        <div className="flex-1 bg-gray-50 overflow-auto p-6 relative">
+          {/* Error Message - Floating */}
+          {error && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 p-4 bg-red-50 border border-red-200 rounded-lg shadow-lg max-w-md">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Action Buttons - Floating Top Right */}
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <button
+              onClick={handleRunAll}
+              disabled={isExecuting || !vision.trim()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md"
+            >
+              {isExecuting ? 'Running...' : 'Run All Steps'}
+            </button>
+            <button
+              onClick={() => setShowDocuments(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
+            >
+              View Documents
+            </button>
+          </div>
+
+          {/* Activity Logs - Floating Bottom Right */}
+          {logs.length > 0 && (
+            <div className="absolute bottom-4 right-4 z-10 w-96 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-900">Activity Log</h3>
                 <button
                   onClick={() => setLogs([])}
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-gray-500 hover:text-gray-700"
                 >
-                  Clear logs
+                  Clear
                 </button>
               </div>
-            )}
-
-            {/* Current Status Messages */}
-            {isExecuting && (
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-gray-900">Status</h2>
-                {Object.entries(nodes).map(([key, node]) =>
-                  node.message && node.status === 'running' ? (
-                    <div key={key} className="p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                      <div className="font-semibold text-blue-900">{key.toUpperCase()}</div>
-                      <div className="text-blue-700">{node.message}</div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {logs.slice(-10).reverse().map((log, idx) => (
+                  <div key={idx} className="p-2 bg-gray-50 border border-gray-200 rounded text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-blue-600">{log.step}</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-500">
+                        {log.timestamp.toLocaleTimeString()}
+                      </span>
                     </div>
-                  ) : null
-                )}
+                    <p className="text-gray-700 mt-1">{log.message}</p>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        </aside>
+            </div>
+          )}
 
-        {/* Pipeline Canvas */}
-        <div className="flex-1">
+          {/* Pipeline Canvas */}
           <PipelineCanvas
             onRunStep={handleRunStep}
             availablePersonas={availablePersonas}

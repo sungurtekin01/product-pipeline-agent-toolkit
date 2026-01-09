@@ -113,6 +113,20 @@ class PipelineExecutor:
             if "provider" in config:
                 api_params[f"{agent_name}_provider"] = config["provider"]
 
+        # Set API keys as environment variables if provided from Settings UI
+        # Only override if non-empty (fall back to .env file otherwise)
+        if self.api_keys:
+            provider_env_map = {
+                'gemini': 'GEMINI_API_KEY',
+                'anthropic': 'ANTHROPIC_API_KEY',
+                'openai': 'OPENAI_API_KEY'
+            }
+            for key_name, api_key in self.api_keys.items():
+                env_var = provider_env_map.get(key_name)
+                # Only set if non-empty to avoid overriding .env file
+                if env_var and api_key and api_key.strip():
+                    os.environ[env_var] = api_key
+
         # Create registry and get client registry
         registry = BAMLClientRegistry(api_params if api_params else None)
         client_registry = registry.get_client_registry()
