@@ -1,4 +1,4 @@
-# Product Pipeline Toolkit - Monorepo
+# Sait's Product Pipeline Toolkit
 
 AI-powered product development pipeline with visual canvas UI. Transform your product vision into complete documentation (PRD → Design Spec → Development Tickets) using multi-agent LLM collaboration.
 
