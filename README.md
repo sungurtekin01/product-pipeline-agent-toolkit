@@ -1,305 +1,411 @@
-	# Sait's Product Pipeline Toolkit
+# Sait's Product Pipeline Toolkit
 
-AI-powered product development pipeline using BAML schemas and Gemini API to generate Business Requirements Documents, Design Specifications, and Development Tickets.
+AI-powered product development pipeline with visual canvas UI. Transform your product vision into complete documentation (PRD → Design Spec → Development Tickets) using multi-agent LLM collaboration.
 
-## Features
+## 🎯 What is This?
 
-- **Type-Safe AI Outputs**: Uses BAML (Boundary Markup Language) schemas to ensure structured, validated responses
-- **Reusable Personas**: Pre-configured AI personas for different roles (Designer, Product Owner)
-- **Complete Pipeline**: BRD → Design → Tickets workflow for rapid product planning
-- **Gemini-Powered**: Leverages Google's Gemini 2.5 Pro for intelligent content generation
+A monorepo containing:
+- **Visual UI** (Next.js + React Flow) - Interactive pipeline canvas
+- **API Backend** (FastAPI) - Executes pipeline steps
+- **Engine** (Python) - Core AI pipeline with multi-provider LLM support
 
-## What Gets Generated
-
-1. **Business Requirements Document (BRD)**: Structured overview of your product vision with title, description, and objectives
-2. **Design Specification**: Detailed UI/UX design including screens, components, wireframes, and code snippets
-3. **Development Tickets**: Organized milestones with actionable tickets including priorities, dependencies, and acceptance criteria
-
-## Prerequisites
-
-- **Python 3.8+**
-- **Gemini API Key** - Get yours at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- **BAML CLI v0.213.0** - Install with: `npm install -g @boundaryml/baml@0.213.0`
-
-## Setup Instructions
-
-### Quick Setup (Recommended)
-
-Run the automated setup script:
-
-```bash
-./setup.sh
-```
-
-This will:
-- Create a virtual environment
-- Install all dependencies with correct versions
-- Copy .env.example to .env
-- Check for required tools
-
-Then follow the next steps to configure your environment and generate the BAML client.
-
-### Manual Setup
-
-### 1. Add to Your Project
-
-Copy all toolkit files into your project directory:
-
-```bash
-# Your project structure will look like:
-your-project/
-├── scripts/          # Python generation scripts
-├── baml_src/         # BAML schema definitions
-├── personas/         # AI persona configurations
-├── examples/         # Sample outputs
-├── .env.example      # Environment template
-└── requirements.txt  # Python dependencies
-```
-
-### 2. Create Virtual Environment and Install Dependencies
-
-```bash
-# Create virtual environment
-python3 -m venv .venv
-
-# Activate virtual environment
-source .venv/bin/activate  # On macOS/Linux
-# OR
-.venv\Scripts\activate     # On Windows
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-**Note**: Always activate the virtual environment before running scripts.
-
-### 3. Configure Environment
-
-```bash
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-```
-
-### 4. Generate BAML Client
-
-This creates the Python Pydantic models from BAML schemas:
-
-```bash
-baml generate
-```
-
-**Note**: Make sure you have BAML CLI v0.213.0 installed globally (see Prerequisites). This version generates Python by default.
-
-## Usage
-
-The toolkit can be used in two ways:
-1. **Standalone mode** - Run from toolkit directory for quick prototyping
-2. **Project mode** - Generate docs for any external project using `product.config.json`
-
-### Using with External Projects (Recommended)
-
-#### Step 1: Create Config in Your Project
-
-In your project root, create `product.config.json`:
-
-```json
-{
-  "name": "Your Project Name",
-  "vision": "Your product vision and description...",
-  "output_dir": "docs/product"
-}
-```
-
-#### Step 2: Generate All Documents
-
-From anywhere, run the toolkit scripts pointing to your project:
-
-```bash
-# From your project directory:
-cd ~/your-project
-python ~/path/to/product-pipeline-toolkit/scripts/generate_brd.py --project .
-python ~/path/to/product-pipeline-toolkit/scripts/generate_design.py --project .
-python ~/path/to/product-pipeline-toolkit/scripts/generate_tickets.py --project .
-```
-
-Or from anywhere:
-
-```bash
-python ~/path/to/product-pipeline-toolkit/scripts/generate_brd.py --project ~/your-project
-python ~/path/to/product-pipeline-toolkit/scripts/generate_design.py --project ~/your-project
-python ~/path/to/product-pipeline-toolkit/scripts/generate_tickets.py --project ~/your-project
-```
-
-**Outputs** will be saved to your project's configured output directory (e.g., `docs/product/`):
-- `brd.json` - Business Requirements Document
-- `design-spec.json` - Design Specification
-- `development-tickets.json` - Development Tickets
-
-### Standalone Mode (Quick Prototyping)
-
-#### Step 1: Generate Business Requirements Document
-
-Edit `scripts/generate_brd.py` and customize the `product_vision` variable with your product idea, then run:
-
-```bash
-# Make sure virtual environment is activated
-source .venv/bin/activate
-
-# Run the script
-PYTHONPATH=. python scripts/generate_brd.py
-```
-
-**Output**: `brd.json` - Structured business requirements
-
-### Step 2: Generate Design Specification
-
-Uses the BRD to create detailed design specifications:
-
-```bash
-PYTHONPATH=. python scripts/generate_design.py
-```
-
-**Output**: `design-spec.json` - Complete design specification with screens and components
-
-### Step 3: Generate Development Tickets
-
-Creates actionable development tickets organized by milestones:
-
-```bash
-PYTHONPATH=. python scripts/generate_tickets.py
-```
-
-**Output**: `product/development-tickets.json` - Ready-to-use development tickets
-
-## Customization
-
-### Personas
-
-The toolkit includes three AI personas in the `personas/` directory:
-
-- **designer.toml** - Web/UI designer specialized in Tailwind CSS
-- **rn_designer.toml** - React Native designer for mobile apps
-- **po.toml** - Product Owner specialized in kids' educational apps
-
-**To customize**: Edit the persona files to match your domain, tech stack, or preferences.
-
-### BAML Schemas
-
-Extend or modify the schemas in `baml_src/` to add custom fields:
-
-- **brd.baml** - Business requirements structure
-- **design_spec.baml** - Design specification format
-- **ticket.baml** - Development ticket structure
-
-After modifying schemas, regenerate the BAML client:
-
-```bash
-baml generate
-```
-
-### Product Vision
-
-Edit the `product_vision` variable in `scripts/generate_brd.py` for each new project.
-
-## Example Outputs
-
-See the `examples/` directory for sample outputs:
-
-- `brd.json` - Example Business Requirements Document
-- `design-spec.json` - Example Design Specification
-- `development-tickets.json` - Example Development Tickets
-
-## File Structure
+## 🏗️ Architecture
 
 ```
 product-pipeline-toolkit/
-├── README.md                       # This file
-├── requirements.txt                # Python dependencies
-├── .env.example                    # Environment variable template
-├── .gitignore                      # Git ignore patterns
-├── scripts/
-│   ├── generate_brd.py            # Generate Business Requirements
-│   ├── generate_design.py         # Generate Design Specifications
-│   └── generate_tickets.py        # Generate Development Tickets
-├── baml_src/
-│   ├── brd.baml                   # BRD schema definition
-│   ├── design_spec.baml           # Design spec schema
-│   └── ticket.baml                # Ticket schema
-├── personas/
-│   ├── designer.toml              # Web/UI designer persona
-│   ├── rn_designer.toml           # React Native designer persona
-│   └── po.toml                    # Product Owner persona
-└── examples/
-    ├── brd.json                   # Sample BRD output
-    ├── design-spec.json           # Sample design spec
-    └── development-tickets.json   # Sample tickets
+├── apps/
+│   ├── web/          # Next.js frontend with React Flow canvas
+│   └── api/          # FastAPI backend for pipeline execution
+└── packages/
+    └── engine/       # Core pipeline engine (Python)
 ```
 
-## Troubleshooting
+### Visual Pipeline Flow
 
-### "GEMINI_API_KEY not found"
-- Ensure `.env` file exists in project root
-- Verify `GEMINI_API_KEY=your_key_here` is set correctly
-- Check you're running scripts from the project root
-
-### "ModuleNotFoundError: No module named 'baml_client'"
-- Run `baml generate` to create the Python client
-- Ensure BAML CLI v0.213.0 is installed: `npm install -g @boundaryml/baml@0.213.0`
-- Make sure to run scripts with `PYTHONPATH=.` to include the current directory in the Python path
-
-### "baml-py version mismatch" or "baml-py is likely out of date"
-- This means the baml_client was generated with a different version of baml-py
-- The requirements.txt pins baml-py to version 0.213.0 to match BAML CLI v0.213.0
-- Both the Python package (baml-py) and CLI tool must be version 0.213.0
-
-### "FileNotFoundError" when running scripts
-- Ensure you're running from the project root, not from `scripts/` directory
-- Correct: `python scripts/generate_brd.py`
-- Incorrect: `cd scripts && python generate_brd.py`
-
-### Schema Validation Errors
-- The AI might generate output that doesn't match the BAML schema
-- Try running the script again (LLM outputs can vary)
-- Check the console for detailed error messages
-- Consider adjusting your prompt or schema if errors persist
-
-## Advanced Tips
-
-### Using Different Gemini Models
-
-Edit the model selection in each script:
-
-```python
-model = genai.GenerativeModel("gemini-2.5-flash")  # Faster, cheaper
-model = genai.GenerativeModel("gemini-2.5-pro")    # Better quality
+```
+Vision → PRD → Design Spec → Dev Tickets
+         ↓        ↓             ↓
+      Strategist  Designer      PO
+         ↓        ↓             ↓
+      Q&A with   Q&A with    Q&A with
+      nothing    Strategist   Designer+Strategist
 ```
 
-### Swapping to Other LLM Providers
+## ✨ Key Features
 
-The scripts use direct Gemini API calls. To use Claude, GPT-4, or other providers:
+- **🎨 Visual Pipeline Canvas** - Interactive React Flow diagram
+- **🤖 Multi-Provider LLM** - Gemini, Claude (Anthropic), OpenAI GPT
+- **💬 Multi-Agent Q&A** - Agents collaborate before generating documents
+- **🔄 Feedback Loop** - Iterative refinement with feedback incorporation
+- **📝 Dual Output** - Markdown (primary) + JSON (compatibility)
+- **⚙️ Flexible Config** - Per-agent LLM configuration
+- **🎯 Type-Safe** - BAML schemas + Pydantic validation
+- **🚀 Real-time Progress** - Watch pipeline execution live
 
-1. Replace the `genai` imports and API calls
-2. Update the model initialization
-3. Adjust the response parsing if needed
+## 🚀 Quick Start
 
-Each script only has ~5 lines of LLM-specific code, making swaps straightforward.
+### Prerequisites
 
-### Batch Processing
+**For Docker (Recommended):**
+- **Docker** and **Docker Compose** installed
+- **API Keys** (at least one) - You'll configure these in the Settings UI:
+  - Gemini: https://aistudio.google.com/apikey (Free tier: 60 requests/min)
+  - Anthropic: https://console.anthropic.com/ ($5 free credit)
+  - OpenAI: https://platform.openai.com/api-keys ($5 free credit for new accounts)
 
-Create a shell script to run the entire pipeline:
+**For Manual Setup (Development):**
+- **Node.js 18+** and **pnpm**
+- **Python 3.8+**
+- **BAML CLI v0.213.0**: `npm install -g @boundaryml/baml@0.213.0`
+- Same API keys as above
+
+### 1. Clone and Setup
+
+#### For Docker Users (Quick Setup):
 
 ```bash
-#!/bin/bash
-source .venv/bin/activate
-PYTHONPATH=. python scripts/generate_brd.py && \
-PYTHONPATH=. python scripts/generate_design.py && \
-PYTHONPATH=. python scripts/generate_tickets.py
+# Clone repository
+git clone <repo-url>
+cd product-pipeline-toolkit
+
+# That's it! Docker will handle the rest.
+# Skip to "2. Run the Application → Option A: Docker"
 ```
 
-## Credits
+#### For Manual Setup (Development):
 
-Created by Sait for rapid product development workflows.
+```bash
+# Clone repository
+git clone <repo-url>
+cd product-pipeline-toolkit
 
-## License
+# Install frontend dependencies
+pnpm install
 
-Feel free to use this toolkit in your projects and adapt it to your needs.
+# Setup Python environment for engine
+cd packages/engine
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Generate BAML client
+baml generate
+cd ../..
+
+# Setup API backend
+cd apps/api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd ../..
+```
+
+### 2. Run the Application
+
+#### Option A: Docker (Easiest - Recommended)
+
+```bash
+# Start all services (frontend + backend)
+docker compose up
+
+# Or run in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+Then open http://localhost:3000
+
+#### Option B: Manual (Development)
+
+```bash
+# Terminal 1 - Frontend
+pnpm dev
+
+# Terminal 2 - Backend API
+cd apps/api
+source .venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+Then open http://localhost:3000
+
+#### Option C: Engine Only (CLI)
+
+```bash
+# Navigate to engine
+cd packages/engine
+source .venv/bin/activate
+
+# Create a project
+mkdir -p ~/my-product
+cp -r examples/project-template/* ~/my-product/
+cd ~/my-product
+
+# Edit product.config.json with your vision
+
+# Run pipeline
+python ~/product-pipeline-toolkit/packages/engine/scripts/generate_prd.py --project .
+python ~/product-pipeline-toolkit/packages/engine/scripts/generate_design.py --project .
+python ~/product-pipeline-toolkit/packages/engine/scripts/generate_tickets.py --project .
+```
+
+## 📦 Monorepo Structure
+
+### Frontend (`apps/web`)
+
+Next.js 14 application with React Flow pipeline canvas.
+
+**Key Components:**
+- `components/pipeline/PipelineCanvas.tsx` - Main canvas with React Flow
+- `components/pipeline/PipelineNode.tsx` - Custom node for pipeline steps
+- `app/page.tsx` - Main application page
+
+**Tech Stack:**
+- Next.js 14 (App Router)
+- React Flow 12
+- Tailwind CSS 4
+- TypeScript
+- Lucide Icons
+
+### Backend (`apps/api`)
+
+FastAPI application that executes the pipeline.
+
+**Endpoints:**
+- `POST /api/pipeline/execute` - Execute a pipeline step
+- `GET /api/pipeline/status/{task_id}` - Get execution status
+- `GET /api/pipeline/tasks` - List all tasks
+- `WS /api/pipeline/ws/{task_id}` - Real-time progress updates
+- `GET /api/documents/{step}` - Get generated document content
+- `GET /api/documents/{step}/qa` - Get Q&A conversation
+- `GET /api/documents/list` - List all available documents
+- `GET /api/health` - Health check
+
+**Tech Stack:**
+- FastAPI
+- Uvicorn
+- Pydantic
+- Python 3.8+
+
+### Engine (`packages/engine`)
+
+Core pipeline engine with multi-provider LLM support.
+
+**Architecture:**
+- `src/llm/` - Multi-provider LLM abstraction (Gemini, Claude, OpenAI)
+- `src/agents/` - Multi-agent system (Strategist, Designer, PO)
+- `src/personas/` - Reusable agent personas (TOML)
+- `src/io/` - Markdown/JSON I/O utilities
+- `src/pipeline/` - Configuration management
+- `src/schemas/` - Pydantic schemas (mirror BAML)
+- `baml_src/` - BAML schema definitions
+- `scripts/` - Generation scripts (PRD, Design, Tickets)
+
+## 🎮 Using the UI
+
+### 1. Configure API Keys (First Time)
+
+Click the **Settings** button in the top-right corner to configure your API keys. Keys are stored securely in your browser's local storage and sent directly to the LLM providers - never stored on any server.
+
+**For CLI/Engine-only usage:**
+Create `.env` in `packages/engine` with:
+```bash
+GEMINI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+```
+
+### 2. Enter Product Vision
+
+In the sidebar, enter your product vision in the text area.
+
+### 3. Configure LLM
+
+Select your preferred LLM provider (Gemini, Claude, or GPT).
+
+### 4. Run Pipeline
+
+Click "Run Pipeline" to execute all steps sequentially:
+1. PRD generation
+2. Design Spec generation (with Q&A)
+3. Development Tickets (with Q&A)
+
+### 5. Watch Real-time Progress
+
+Watch the pipeline canvas nodes update in real-time via WebSocket as each step executes:
+- Gray = Pending
+- Blue with progress bar = Running
+- Green = Completed
+- Red = Failed
+
+### 6. View Generated Documents
+
+Click "View Documents" to open the document viewer:
+- Switch between PRD, Design Spec, and Tickets tabs
+- View Q&A conversations for Design and Tickets
+- Download any document as markdown
+- See which documents are available
+
+## 📝 Configuration
+
+### LLM Configuration
+
+Configure different LLMs for each agent in your project's `product.config.json`:
+
+```json
+{
+  "vision": "Build a task management app...",
+  "output_dir": "docs/product",
+  "llm": {
+    "strategist": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash-exp"
+    },
+    "designer": {
+      "provider": "claude",
+      "model": "claude-sonnet-4-20250514"
+    },
+    "po": {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  }
+}
+```
+
+### Environment Variables
+
+**For Users**: Configure API keys via the Settings UI in the web application. No manual `.env` file setup required.
+
+**For Developers**: If testing the engine CLI directly (without the UI), create `.env` in `packages/engine`:
+
+```bash
+GEMINI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+```
+
+## 🔄 Feedback Loop
+
+All generators support iterative refinement:
+
+1. Generate initial document
+2. Review output in `docs/product/`
+3. Add feedback to `docs/product/conversations/feedback/[type]-feedback.md`
+4. Regenerate - feedback is automatically incorporated
+
+## 🧪 Development
+
+### Frontend Development
+
+```bash
+# Start dev server
+pnpm dev
+
+# Lint
+pnpm lint
+
+# Build
+pnpm build
+```
+
+### Backend Development
+
+```bash
+cd apps/api
+source .venv/bin/activate
+
+# Run with hot reload
+uvicorn app.main:app --reload
+
+# Run tests (when implemented)
+pytest
+```
+
+### Engine Development
+
+```bash
+cd packages/engine
+source .venv/bin/activate
+
+# Run tests
+pytest tests/
+
+# After modifying BAML schemas
+baml generate
+```
+
+## 📚 Documentation
+
+- **Frontend**: `apps/web/README.md`
+- **Backend**: `apps/api/README.md`
+- **Engine**: `packages/engine/README.md`
+
+## 🛠️ Troubleshooting
+
+### "ModuleNotFoundError: No module named 'baml_client'"
+
+```bash
+cd packages/engine
+baml generate
+```
+
+### "API key not found" or "Please configure your API keys"
+
+Click the **Settings** button in the UI and add at least one API key. Keys are stored in your browser's local storage.
+
+For CLI/standalone engine usage, ensure `.env` file exists in `packages/engine` with your API keys.
+
+### Frontend can't connect to backend
+
+Ensure FastAPI is running on port 8000:
+```bash
+cd apps/api
+source .venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+### Python import errors
+
+Ensure you're in the correct virtual environment:
+```bash
+# For API
+cd apps/api
+source .venv/bin/activate
+
+# For Engine
+cd packages/engine
+source .venv/bin/activate
+```
+
+## 🎯 Roadmap
+
+- [x] WebSocket support for real-time progress updates
+- [x] Document viewer with markdown rendering
+- [x] Inline feedback editor in UI
+- [x] Settings UI for API key management
+- [ ] Project management (save/load multiple projects)
+- [ ] Authentication and user management
+- [ ] Export to Linear/Jira/GitHub Issues
+- [ ] Collaborative editing
+- [ ] Version history
+
+## 📄 License
+
+MIT
+
+## 🙏 Credits
+
+Powered by:
+- [BAML](https://www.boundaryml.com/) - Type-safe AI schemas
+- [React Flow](https://reactflow.dev/) - Interactive node graphs
+- [Next.js](https://nextjs.org/) - React framework
+- [FastAPI](https://fastapi.tiangolo.com/) - Python web framework
+- [Google Gemini](https://ai.google.dev/) - Fast, cost-effective LLM
+- [Anthropic Claude](https://www.anthropic.com/) - Advanced reasoning
+- [OpenAI GPT](https://openai.com/) - Versatile language models

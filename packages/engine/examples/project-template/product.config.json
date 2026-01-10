@@ -1,0 +1,66 @@
+{
+  "vision": "Your product vision goes here. Describe what you want to build, the problem it solves, and the target users.",
+  "output_dir": "docs/product",
+
+  "llm": {
+    "strategist": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash-exp",
+      "api_key_env": "GEMINI_API_KEY"
+    },
+    "designer": {
+      "provider": "claude",
+      "model": "claude-sonnet-4-20250514",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    "po": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "api_key_env": "OPENAI_API_KEY"
+    }
+  },
+
+  "_comment": "Configuration options explained:",
+  "_vision": "Product vision text (required) - used to generate the initial BRD",
+  "_output_dir": "Output directory for generated documents (default: docs/product)",
+  "_llm": "LLM configuration per agent - each agent can use a different provider/model",
+
+  "_llm_providers": {
+    "gemini": {
+      "models": ["gemini-2.0-flash-exp", "gemini-2.0-flash-thinking-exp-01-21", "gemini-1.5-pro"],
+      "api_key_env": "GEMINI_API_KEY",
+      "description": "Google's Gemini models - fast and cost-effective"
+    },
+    "claude": {
+      "models": ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022"],
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "description": "Anthropic's Claude models - excellent reasoning and detailed output"
+    },
+    "openai": {
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+      "api_key_env": "OPENAI_API_KEY",
+      "description": "OpenAI's GPT models - versatile and reliable"
+    }
+  },
+
+  "_cli_overrides": "You can override provider/model from command line:",
+  "_examples": [
+    "python scripts/generate_brd.py --provider claude --model claude-sonnet-4-20250514",
+    "python scripts/generate_design.py --provider gemini",
+    "python scripts/generate_tickets.py --model gpt-4o"
+  ],
+
+  "_priority": "CLI arguments > agent config > defaults",
+
+  "_workflow": [
+    "1. Set up this config file in your project root",
+    "2. Set environment variables for API keys (GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)",
+    "3. Run: python scripts/generate_brd.py --project /path/to/your/project",
+    "4. Review BRD, add feedback to docs/product/conversations/feedback/brd-feedback.md if needed",
+    "5. Run: python scripts/generate_design.py --project /path/to/your/project",
+    "6. Review design spec, add feedback if needed",
+    "7. Run: python scripts/generate_tickets.py --project /path/to/your/project",
+    "8. Review tickets, add feedback if needed",
+    "9. Rerun any script to regenerate with feedback incorporated"
+  ]
+}

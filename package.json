@@ -1,0 +1,26 @@
+{
+  "name": "product-pipeline-toolkit",
+  "version": "1.0.0",
+  "description": "AI-powered product development pipeline with visual canvas",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "cd apps/api && source .venv/bin/activate && uvicorn app.main:app --reload",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "setup:api": "cd apps/api && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+  },
+  "keywords": [
+    "product",
+    "pipeline",
+    "ai",
+    "llm",
+    "baml",
+    "nextjs",
+    "fastapi",
+    "react-flow"
+  ],
+  "author": "Sait",
+  "license": "MIT"
+}

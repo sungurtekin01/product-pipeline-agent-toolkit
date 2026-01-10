@@ -1,0 +1,224 @@
+{
+  "_comment": "Product Pipeline Toolkit - Configuration Examples",
+  "_description": "This file shows comprehensive configuration examples for using the toolkit with different LLM providers and setups",
+
+  "vision": "Build a task management application for remote teams that enables seamless collaboration, real-time updates, and progress tracking. The app should support multiple projects, team member assignments, deadline tracking, and basic reporting. Target users are small to medium-sized remote teams (5-50 people) in tech companies.",
+
+  "output_dir": "docs/product",
+
+  "llm": {
+    "strategist": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash-exp",
+      "api_key_env": "GEMINI_API_KEY"
+    },
+    "designer": {
+      "provider": "claude",
+      "model": "claude-sonnet-4-20250514",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    "po": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "api_key_env": "OPENAI_API_KEY"
+    }
+  },
+
+  "_examples": "Below are alternative configuration examples",
+
+  "_example_all_gemini": {
+    "_description": "Use Gemini for all agents - fastest and most cost-effective",
+    "llm": {
+      "strategist": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash-exp"
+      },
+      "designer": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash-exp"
+      },
+      "po": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash-exp"
+      }
+    }
+  },
+
+  "_example_all_claude": {
+    "_description": "Use Claude for all agents - best reasoning and analysis",
+    "llm": {
+      "strategist": {
+        "provider": "claude",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "designer": {
+        "provider": "claude",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "po": {
+        "provider": "claude",
+        "model": "claude-sonnet-4-20250514"
+      }
+    }
+  },
+
+  "_example_all_openai": {
+    "_description": "Use OpenAI for all agents - balanced performance",
+    "llm": {
+      "strategist": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "designer": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      },
+      "po": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      }
+    }
+  },
+
+  "_example_cost_optimized": {
+    "_description": "Optimize for cost - use smaller/faster models",
+    "llm": {
+      "strategist": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash-exp"
+      },
+      "designer": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+      },
+      "po": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash-exp"
+      }
+    }
+  },
+
+  "_example_quality_optimized": {
+    "_description": "Optimize for quality - use flagship models",
+    "llm": {
+      "strategist": {
+        "provider": "claude",
+        "model": "claude-opus-4-20250514"
+      },
+      "designer": {
+        "provider": "claude",
+        "model": "claude-opus-4-20250514"
+      },
+      "po": {
+        "provider": "openai",
+        "model": "gpt-4o"
+      }
+    }
+  },
+
+  "_field_reference": {
+    "vision": {
+      "type": "string",
+      "required": true,
+      "description": "Product vision and description - used to generate initial BRD",
+      "can_override_via_cli": true,
+      "cli_flag": "--vision"
+    },
+    "output_dir": {
+      "type": "string",
+      "required": false,
+      "default": "docs/product",
+      "description": "Output directory for generated documents",
+      "can_override_via_cli": true,
+      "cli_flag": "--output"
+    },
+    "llm": {
+      "type": "object",
+      "required": false,
+      "description": "Per-agent LLM configuration",
+      "agents": ["strategist", "designer", "po"],
+      "agent_fields": {
+        "provider": {
+          "type": "string",
+          "required": false,
+          "default": "gemini",
+          "options": ["gemini", "claude", "openai"],
+          "can_override_via_cli": true,
+          "cli_flag": "--provider"
+        },
+        "model": {
+          "type": "string",
+          "required": false,
+          "default": "Provider-specific default",
+          "can_override_via_cli": true,
+          "cli_flag": "--model",
+          "defaults_by_provider": {
+            "gemini": "gemini-2.0-flash-exp",
+            "claude": "claude-sonnet-4-20250514",
+            "openai": "gpt-4o"
+          }
+        },
+        "api_key_env": {
+          "type": "string",
+          "required": false,
+          "default": "Provider-specific default",
+          "defaults_by_provider": {
+            "gemini": "GEMINI_API_KEY",
+            "claude": "ANTHROPIC_API_KEY",
+            "openai": "OPENAI_API_KEY"
+          }
+        }
+      }
+    }
+  },
+
+  "_model_reference": {
+    "gemini_models": [
+      "gemini-2.0-flash-exp",
+      "gemini-2.0-flash-thinking-exp-01-21",
+      "gemini-1.5-pro"
+    ],
+    "claude_models": [
+      "claude-sonnet-4-20250514",
+      "claude-opus-4-20250514",
+      "claude-3-5-sonnet-20241022"
+    ],
+    "openai_models": [
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4-turbo"
+    ]
+  },
+
+  "_priority": "Configuration priority: CLI arguments > agent config in this file > defaults",
+
+  "_cli_examples": [
+    {
+      "description": "Override provider for all agents",
+      "command": "python scripts/generate_brd.py --project . --provider claude"
+    },
+    {
+      "description": "Override model for all agents",
+      "command": "python scripts/generate_design.py --project . --model gpt-4o"
+    },
+    {
+      "description": "Override both provider and model",
+      "command": "python scripts/generate_tickets.py --project . --provider gemini --model gemini-2.0-flash-exp"
+    },
+    {
+      "description": "Override vision and output directory",
+      "command": "python scripts/generate_brd.py --vision \"Build a mobile app...\" --output docs/v2"
+    }
+  ],
+
+  "_usage_workflow": [
+    "1. Copy this file or examples/project-template/ to your project directory",
+    "2. Edit the 'vision' field with your product vision",
+    "3. Configure LLM providers per agent (or use CLI overrides)",
+    "4. Set environment variables for API keys (GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)",
+    "5. Run: python scripts/generate_brd.py --project /path/to/project",
+    "6. Review output, add feedback to docs/product/conversations/feedback/*.md if needed",
+    "7. Rerun scripts to regenerate with feedback incorporated",
+    "8. Repeat for generate_design.py and generate_tickets.py"
+  ]
+}
